@@ -1,0 +1,27 @@
+{
+  "name": "draw-ddd-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TM modeling and DDD aggregate visualization with MCP server",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json}\"",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "gui:dev": "turbo run dev --filter=gui",
+    "backend:dev": "turbo run dev --filter=backend"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.4",
+    "turbo": "latest"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
