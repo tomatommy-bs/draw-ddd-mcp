@@ -35,11 +35,15 @@ export interface TMEntity {
   attributes: TMAttribute[];
 }
 
+export type IdentifierType = 'own' | 'reference' | null;
+
 export interface TMAttribute {
   id: string;
   name: string;
   dataType: string;
   isIdentifier: boolean;
+  identifierType: IdentifierType;
+  referenceId: string | null;
   identifierOrder: number | null;
   isRequired: boolean;
   default: string;

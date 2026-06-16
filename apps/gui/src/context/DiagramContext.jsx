@@ -10,7 +10,7 @@ export function useDiagram() {
 }
 
 const DEFAULT_RESOURCE_COLOR = "#3b82f6";
-const DEFAULT_EVENT_COLOR = "#ef4444";
+const DEFAULT_EVENT_COLOR = "#eab308";
 const DEFAULT_NOTE_COLOR = "#fbbf24";
 
 function makeEntity(overrides = {}) {
@@ -30,11 +30,14 @@ function makeEntity(overrides = {}) {
 
 function makeAttribute(overrides = {}) {
   const id = overrides.id || nanoid();
+  const isIdentifier = overrides.isIdentifier || false;
   return {
     id,
     name: overrides.name || "new_attr",
     dataType: overrides.dataType || "string",
-    isIdentifier: overrides.isIdentifier || false,
+    isIdentifier,
+    identifierType: overrides.identifierType ?? (isIdentifier ? "own" : null),
+    referenceId: overrides.referenceId ?? null,
     identifierOrder: overrides.identifierOrder ?? null,
     isRequired: overrides.isRequired ?? false,
     default: overrides.default || "",
@@ -186,6 +189,46 @@ export function DiagramProvider({ children }) {
   const addReference = useCallback((params = {}) => {
     const ref = makeReference(params);
     setReferences((prev) => [...prev, ref]);
+
+    // Auto-generate reference identifier attributes on source entity
+    const sourceId = ref.sourceEntityId;
+    const targetId = ref.targetEntityId;
+    if (sourceId && targetId) {
+      setEntities((prev) => {
+        const target = prev.find((e) => e.id === targetId);
+        if (!target) return prev;
+        const ownIds = target.attributes.filter(
+          (a) => a.isIdentifier && (a.identifierType === "own" || !a.identifierType)
+        );
+        if (ownIds.length === 0) return prev;
+
+        return prev.map((e) => {
+          if (e.id !== sourceId) return e;
+          const source = e;
+          const existingIdCount = source.attributes.filter((a) => a.isIdentifier).length;
+          const isRecursive = source.subtype === "recursive" && sourceId === targetId;
+          const copies = isRecursive ? 2 : 1;
+          const newAttrs = [];
+          for (let c = 0; c < copies; c++) {
+            ownIds.forEach((ownAttr, i) => {
+              newAttrs.push(
+                makeAttribute({
+                  name: ownAttr.name,
+                  dataType: ownAttr.dataType,
+                  isIdentifier: true,
+                  identifierType: "reference",
+                  referenceId: ref.id,
+                  identifierOrder: existingIdCount + newAttrs.length + 1,
+                  isRequired: true,
+                })
+              );
+            });
+          }
+          return { ...source, attributes: [...source.attributes, ...newAttrs] };
+        });
+      });
+    }
+
     return ref;
   }, []);
 
@@ -205,6 +248,14 @@ export function DiagramProvider({ children }) {
 
   const deleteReference = useCallback((referenceId) => {
     setReferences((prev) => prev.filter((r) => r.id !== referenceId));
+    // Auto-delete reference identifier attributes linked to this reference
+    setEntities((prev) =>
+      prev.map((e) => {
+        const filtered = e.attributes.filter((a) => a.referenceId !== referenceId);
+        if (filtered.length === e.attributes.length) return e;
+        return { ...e, attributes: filtered };
+      })
+    );
   }, []);
 
   // --- Note CRUD ---
@@ -242,18 +293,35 @@ export function DiagramProvider({ children }) {
     };
   }, []);
 
+  const migrateAttributes = useCallback((entities) => {
+    return (entities || []).map((e) => ({
+      ...e,
+      attributes: (e.attributes || []).map((a) => ({
+        ...a,
+        identifierType:
+          a.identifierType !== undefined
+            ? a.identifierType
+            : a.isIdentifier
+              ? "own"
+              : null,
+        referenceId: a.referenceId !== undefined ? a.referenceId : null,
+      })),
+    }));
+  }, []);
+
   const importDiagram = useCallback((diagram, clearCurrent = true) => {
+    const migratedEntities = migrateAttributes(diagram.entities);
     if (clearCurrent) {
-      setEntities(diagram.entities || []);
+      setEntities(migratedEntities);
       setReferences(diagram.references || []);
       setNotes(diagram.notes || []);
       setSelectedId(null);
     } else {
-      setEntities((prev) => [...prev, ...(diagram.entities || [])]);
+      setEntities((prev) => [...prev, ...migratedEntities]);
       setReferences((prev) => [...prev, ...(diagram.references || [])]);
       setNotes((prev) => [...prev, ...(diagram.notes || [])]);
     }
-  }, []);
+  }, [migrateAttributes]);
 
   const autoLayout = useCallback((strategy) => {
     setEntities((prev) => {

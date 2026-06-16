@@ -73,6 +73,25 @@ export default function useRemoteControl() {
             ctx.deleteNote(params.id || params.noteId);
             data = { deleted: params.id || params.noteId };
             break;
+          case "getEntity": {
+            const diagram = ctx.getDiagram();
+            const found = diagram.entities.find(
+              (e) =>
+                (params.entityId && e.id === params.entityId) ||
+                (params.entityName && e.name === params.entityName)
+            );
+            if (!found) return { success: false, error: `Entity not found` };
+            data = found;
+            break;
+          }
+          case "getEntities": {
+            const all = ctx.getDiagram();
+            let filtered = all.entities;
+            if (params.type) filtered = filtered.filter((e) => e.type === params.type);
+            if (params.subtype) filtered = filtered.filter((e) => e.subtype === params.subtype);
+            data = filtered;
+            break;
+          }
           case "getDiagram":
           case "exportDiagram":
             data = ctx.getDiagram();

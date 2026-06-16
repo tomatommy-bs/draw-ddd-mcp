@@ -23,6 +23,16 @@ export class UpdateAttributeTool {
         .boolean()
         .optional()
         .describe('Whether this attribute is part of the entity identifier'),
+      identifierType: z
+        .enum(['own', 'reference'])
+        .nullable()
+        .optional()
+        .describe('The type of identifier: "own" for entity-owned, "reference" for foreign key, null for non-identifiers'),
+      referenceId: z
+        .string()
+        .nullable()
+        .optional()
+        .describe('The ID of the TMReference this attribute is linked to (only for identifierType: "reference")'),
       identifierOrder: z
         .number()
         .nullable()
@@ -43,6 +53,8 @@ export class UpdateAttributeTool {
       name?: string;
       dataType?: string;
       isIdentifier?: boolean;
+      identifierType?: 'own' | 'reference' | null;
+      referenceId?: string | null;
       identifierOrder?: number | null;
       isRequired?: boolean;
       default?: string;
@@ -66,6 +78,8 @@ export class UpdateAttributeTool {
     if (params.name !== undefined) updates.name = params.name;
     if (params.dataType !== undefined) updates.dataType = params.dataType;
     if (params.isIdentifier !== undefined) updates.isIdentifier = params.isIdentifier;
+    if (params.identifierType !== undefined) updates.identifierType = params.identifierType;
+    if (params.referenceId !== undefined) updates.referenceId = params.referenceId;
     if (params.identifierOrder !== undefined) updates.identifierOrder = params.identifierOrder;
     if (params.isRequired !== undefined) updates.isRequired = params.isRequired;
     if (params.default !== undefined) updates.default = params.default;

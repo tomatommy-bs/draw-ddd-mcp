@@ -12,11 +12,18 @@ export class GetDiagramTool {
 
   @Tool({
     name: 'tm_get_diagram',
-    description: 'Get a summary of the current TM diagram including entities, references, and notes',
-    parameters: z.object({}),
+    description:
+      'Get the current TM diagram. Use detail="summary" for an overview (entity names, attribute counts) or detail="full" to include all attributes with identifierType/referenceId fields.',
+    parameters: z.object({
+      detail: z
+        .enum(['summary', 'full'])
+        .optional()
+        .default('summary')
+        .describe('Level of detail: "summary" for overview, "full" for complete structure including all attributes'),
+    }),
   })
   async getDiagram(
-    _params: Record<string, never>,
+    params: { detail: 'summary' | 'full' },
     context: Context,
   ) {
     if (!this.tmClient.isConnected()) {
@@ -27,8 +34,23 @@ export class GetDiagramTool {
 
     await context.reportProgress({ progress: 0, total: 1 });
 
-    this.logger.log('Getting diagram summary');
+    this.logger.log(`Getting diagram (detail: ${params.detail})`);
     const diagram = await this.tmClient.getDiagram();
+
+    await context.reportProgress({ progress: 1, total: 1 });
+
+    if (params.detail === 'full') {
+      return {
+        success: true,
+        message: 'Full diagram retrieved successfully',
+        entityCount: (diagram.entities ?? []).length,
+        referenceCount: (diagram.references ?? []).length,
+        noteCount: (diagram.notes ?? []).length,
+        entities: diagram.entities ?? [],
+        references: diagram.references ?? [],
+        notes: diagram.notes ?? [],
+      };
+    }
 
     const entities = (diagram.entities ?? []).map((e: any) => ({
       id: e.id,
@@ -49,8 +71,6 @@ export class GetDiagramTool {
       id: n.id,
       content: n.content?.substring(0, 100) ?? '',
     }));
-
-    await context.reportProgress({ progress: 1, total: 1 });
 
     return {
       success: true,

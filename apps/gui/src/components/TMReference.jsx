@@ -1,20 +1,28 @@
 import React from "react";
+import { ENTITY_WIDTH } from "./TMEntity";
 
-const ENTITY_WIDTH = 240;
-const ENTITY_HEADER_HEIGHT = 36;
+const HEADER_HEIGHT = 32;
+const ROW_HEIGHT = 24;
+
+function getEntityTotalHeight(entity) {
+  const identifiers = (entity.attributes || []).filter((a) => a.isIdentifier);
+  const attributes = (entity.attributes || []).filter((a) => !a.isIdentifier);
+  const rowCount = Math.max(identifiers.length, attributes.length, 1);
+  return HEADER_HEIGHT + rowCount * ROW_HEIGHT;
+}
 
 function getEntityCenter(entity) {
   if (!entity) return { x: 0, y: 0 };
+  const totalHeight = getEntityTotalHeight(entity);
   return {
     x: entity.x + ENTITY_WIDTH / 2,
-    y: entity.y + ENTITY_HEADER_HEIGHT / 2,
+    y: entity.y + totalHeight / 2,
   };
 }
 
 function getEdgePoint(entity, targetCenter) {
   const cx = entity.x + ENTITY_WIDTH / 2;
-  const attrCount = Math.max(entity.attributes?.length || 0, 1);
-  const totalHeight = ENTITY_HEADER_HEIGHT + 20 + attrCount * 24 + 8;
+  const totalHeight = getEntityTotalHeight(entity);
   const cy = entity.y + totalHeight / 2;
   const hw = ENTITY_WIDTH / 2;
   const hh = totalHeight / 2;

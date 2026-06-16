@@ -214,6 +214,9 @@ export default function SidePanel() {
         </div>
       </div>
 
+      {/* Debug JSON */}
+      <DebugJson entity={entity} />
+
       {/* Delete button */}
       <div className="p-4 border-t border-gray-200">
         {!confirmDelete ? (
@@ -243,6 +246,30 @@ export default function SidePanel() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function DebugJson({ entity }) {
+  const [open, setOpen] = useState(false);
+  const { references } = useDiagram();
+  const relatedRefs = references.filter(
+    (r) => r.sourceEntityId === entity.id || r.targetEntityId === entity.id
+  );
+  const debugData = { ...entity, _references: relatedRefs };
+  return (
+    <div className="px-4 pb-2">
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-xs text-gray-400 hover:text-gray-600 font-mono"
+      >
+        {open ? "▼" : "▶"} Debug JSON
+      </button>
+      {open && (
+        <pre className="mt-1 p-2 bg-gray-900 text-green-400 text-[10px] leading-tight rounded overflow-auto max-h-64 font-mono">
+          {JSON.stringify(debugData, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }

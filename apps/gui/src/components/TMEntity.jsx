@@ -1,10 +1,13 @@
 import React, { useRef, useCallback, useState } from "react";
 import { useDiagram } from "../context/DiagramContext";
 
-const ENTITY_WIDTH = 240;
-const HEADER_HEIGHT = 36;
-const ATTR_HEIGHT = 24;
-const SUBTYPE_TAG_HEIGHT = 20;
+export const ENTITY_WIDTH = 280;
+const HEADER_HEIGHT = 32;
+const ROW_HEIGHT = 24;
+const MIN_ROWS = 1;
+const ID_COL_RATIO = 0.4;
+const ID_COL_WIDTH = Math.floor(ENTITY_WIDTH * ID_COL_RATIO);
+const ATTR_COL_WIDTH = ENTITY_WIDTH - ID_COL_WIDTH;
 
 export default function TMEntity({ entity }) {
   const { selectedId, setSelectedId, updateEntity } = useDiagram();
@@ -12,13 +15,14 @@ export default function TMEntity({ entity }) {
   const dragRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const totalHeight =
-    HEADER_HEIGHT +
-    SUBTYPE_TAG_HEIGHT +
-    Math.max(entity.attributes.length, 1) * ATTR_HEIGHT +
-    8;
+  const identifiers = entity.attributes.filter((a) => a.isIdentifier);
+  const attributes = entity.attributes.filter((a) => !a.isIdentifier);
+  const rowCount = Math.max(identifiers.length, attributes.length, MIN_ROWS);
+  const bodyHeight = rowCount * ROW_HEIGHT;
+  const totalHeight = HEADER_HEIGHT + bodyHeight;
 
-  const borderRadius = entity.type === "resource" ? 10 : 3;
+  const headerColor = entity.color || (entity.type === "resource" ? "#3b82f6" : "#eab308");
+  const bodyBg = entity.type === "resource" ? "#f0f7ff" : "#fffbeb";
 
   const handleMouseDown = useCallback(
     (e) => {
@@ -55,17 +59,61 @@ export default function TMEntity({ entity }) {
     [entity.id, entity.x, entity.y, setSelectedId, updateEntity]
   );
 
+  const renderIdCell = (attr, idx) => {
+    if (!attr) return <div key={`id-empty-${idx}`} style={{ height: ROW_HEIGHT }} />;
+    const label =
+      attr.identifierType === "reference" ? `${attr.name}(R)` : attr.name;
+    return (
+      <div
+        key={attr.id}
+        style={{
+          height: ROW_HEIGHT,
+          display: "flex",
+          alignItems: "center",
+          padding: "0 6px",
+          fontWeight: 600,
+          color: "#111827",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {label}
+      </div>
+    );
+  };
+
+  const renderAttrCell = (attr, idx) => {
+    if (!attr) return <div key={`attr-empty-${idx}`} style={{ height: ROW_HEIGHT }} />;
+    return (
+      <div
+        key={attr.id}
+        style={{
+          height: ROW_HEIGHT,
+          display: "flex",
+          alignItems: "center",
+          padding: "0 6px",
+          color: "#374151",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {attr.name}
+      </div>
+    );
+  };
+
   return (
     <g transform={`translate(${entity.x}, ${entity.y})`}>
-      {/* Selection border */}
       {isSelected && (
         <rect
           x={-3}
           y={-3}
           width={ENTITY_WIDTH + 6}
           height={totalHeight + 6}
-          rx={borderRadius + 2}
-          ry={borderRadius + 2}
+          rx={2}
+          ry={2}
           fill="none"
           stroke="#2563eb"
           strokeWidth={2}
@@ -84,123 +132,81 @@ export default function TMEntity({ entity }) {
           style={{
             width: ENTITY_WIDTH,
             height: totalHeight,
-            borderRadius: borderRadius,
             overflow: "hidden",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
-            backgroundColor: "#ffffff",
-            border: "1px solid #e5e7eb",
+            border: "2px solid #1f2937",
             userSelect: "none",
             fontSize: "12px",
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            fontFamily: "'Noto Sans JP', 'Hiragino Sans', -apple-system, sans-serif",
           }}
         >
-          {/* Color strip + header */}
+          {/* Header: name left, R/E badge right */}
           <div
             style={{
               height: HEADER_HEIGHT,
-              backgroundColor: entity.color || "#3b82f6",
+              backgroundColor: headerColor,
               display: "flex",
               alignItems: "center",
+              justifyContent: "space-between",
               padding: "0 8px",
               color: "#ffffff",
-              fontWeight: 600,
+              fontWeight: 700,
+              borderBottom: "2px solid #1f2937",
             }}
           >
             <span
               style={{
-                backgroundColor: "rgba(255,255,255,0.3)",
-                borderRadius: 3,
-                padding: "1px 5px",
-                marginRight: 6,
-                fontSize: "10px",
-                fontWeight: 700,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flex: 1,
+              }}
+            >
+              {entity.name}
+            </span>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 800,
+                marginLeft: 8,
+                flexShrink: 0,
               }}
             >
               {entity.type === "resource" ? "R" : "E"}
             </span>
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {entity.name}
-            </span>
           </div>
 
-          {/* Subtype tag */}
+          {/* Body: two-column T-shaped layout */}
           <div
             style={{
-              height: SUBTYPE_TAG_HEIGHT,
               display: "flex",
-              alignItems: "center",
-              padding: "0 8px",
-              backgroundColor: "#f9fafb",
-              borderBottom: "1px solid #e5e7eb",
+              height: bodyHeight,
+              backgroundColor: bodyBg,
             }}
           >
-            <span
+            {/* Left column: identifiers */}
+            <div
               style={{
-                fontSize: "9px",
-                color: "#6b7280",
-                backgroundColor: "#e5e7eb",
-                borderRadius: 3,
-                padding: "1px 6px",
-                textTransform: "uppercase",
-                fontWeight: 500,
-                letterSpacing: "0.05em",
+                width: ID_COL_WIDTH,
+                borderRight: "2px solid #1f2937",
+                overflow: "hidden",
               }}
             >
-              {entity.subtype}
-            </span>
-          </div>
+              {Array.from({ length: rowCount }, (_, i) =>
+                renderIdCell(identifiers[i], i)
+              )}
+            </div>
 
-          {/* Attributes */}
-          <div style={{ padding: "4px 0" }}>
-            {entity.attributes.length === 0 ? (
-              <div
-                style={{
-                  height: ATTR_HEIGHT,
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "0 8px",
-                  color: "#9ca3af",
-                  fontStyle: "italic",
-                }}
-              >
-                No attributes
-              </div>
-            ) : (
-              entity.attributes.map((attr) => (
-                <div
-                  key={attr.id}
-                  style={{
-                    height: ATTR_HEIGHT,
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "0 8px",
-                    gap: 4,
-                    borderBottom: "1px solid #f3f4f6",
-                  }}
-                >
-                  {attr.isIdentifier && (
-                    <span style={{ color: "#eab308", fontSize: "11px" }} title="Identifier">
-                      ★
-                    </span>
-                  )}
-                  <span
-                    style={{
-                      fontWeight: attr.isIdentifier ? 600 : 400,
-                      color: "#111827",
-                      flex: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {attr.name}
-                  </span>
-                  <span style={{ color: "#9ca3af", fontSize: "10px", flexShrink: 0 }}>
-                    {attr.dataType}
-                  </span>
-                </div>
-              ))
-            )}
+            {/* Right column: general attributes */}
+            <div
+              style={{
+                width: ATTR_COL_WIDTH,
+                overflow: "hidden",
+              }}
+            >
+              {Array.from({ length: rowCount }, (_, i) =>
+                renderAttrCell(attributes[i], i)
+              )}
+            </div>
           </div>
         </div>
       </foreignObject>

@@ -24,6 +24,18 @@ export class AddAttributeTool {
         .optional()
         .default(false)
         .describe('Whether this attribute is part of the entity identifier'),
+      identifierType: z
+        .enum(['own', 'reference'])
+        .nullable()
+        .optional()
+        .default(null)
+        .describe('The type of identifier: "own" for entity-owned identifiers, "reference" for foreign key identifiers from referenced entities, null for non-identifiers'),
+      referenceId: z
+        .string()
+        .nullable()
+        .optional()
+        .default(null)
+        .describe('The ID of the TMReference this attribute is linked to (only for identifierType: "reference")'),
       identifierOrder: z
         .number()
         .nullable()
@@ -44,6 +56,8 @@ export class AddAttributeTool {
       name: string;
       dataType: string;
       isIdentifier: boolean;
+      identifierType?: 'own' | 'reference' | null;
+      referenceId?: string | null;
       identifierOrder?: number | null;
       isRequired: boolean;
       default: string;
@@ -70,6 +84,8 @@ export class AddAttributeTool {
       name: params.name,
       dataType: params.dataType,
       isIdentifier: params.isIdentifier,
+      identifierType: params.identifierType ?? (params.isIdentifier ? 'own' : null),
+      referenceId: params.referenceId ?? null,
       identifierOrder: params.identifierOrder ?? null,
       isRequired: params.isRequired,
       default: params.default,
