@@ -4,7 +4,7 @@ import { createPinoLogger, createLoggerService } from './bootstrap.js';
 import { WsAdapter } from '@nestjs/platform-ws';
 
 async function bootstrap() {
-  const port = parseInt(process.env.PORT || '3000', 10);
+  const port = parseInt(process.env.PORT || '3009', 10);
   const host = process.env.HOST || '127.0.0.1';
 
   // Create logger that writes to stdout (fd 1) for HTTP mode

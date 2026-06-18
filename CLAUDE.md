@@ -14,8 +14,8 @@ drawdb-mcp のパターンを踏襲した pnpm + Turborepo モノレポ構成。
 pnpm dev
 
 # 個別起動
-pnpm gui:dev          # GUI (Vite, port 5173)
-pnpm backend:dev      # Backend HTTP mode (NestJS, port 3000)
+pnpm gui:dev          # GUI (Vite, port 5179)
+pnpm backend:dev      # Backend HTTP mode (NestJS, port 3009)
 
 # ビルド・品質
 pnpm build
@@ -59,7 +59,7 @@ docs/           仕様書 (specs.md: 設計決定, ai-specs.md: 技術判断)
 
 ## Environment Variables
 
-Backend: `PORT` (3000), `HOST` (127.0.0.1), `LOG_LEVEL` (info)
+Backend: `PORT` (3009), `HOST` (127.0.0.1), `LOG_LEVEL` (info)
 GUI: `VITE_REMOTE_CONTROL_ENABLED` (false), `VITE_REMOTE_CONTROL_WS` (optional override)
 
 ## Code Style
