@@ -4,7 +4,10 @@ import useRemoteControl from "../hooks/useRemoteControl";
 
 export default function Toolbar({ onToggleDebug, showDebug }) {
   const { addEntity, addNote, autoLayout } = useDiagram();
-  const { isConnected } = useRemoteControl();
+  const enabled =
+    import.meta.env.VITE_REMOTE_CONTROL_ENABLED === "true" ||
+    import.meta.env.VITE_REMOTE_CONTROL_ENABLED === true;
+  const { isConnected } = useRemoteControl(enabled);
 
   const handleAddResource = () => {
     addEntity({ type: "resource", name: "NewResource", color: "#3b82f6" });

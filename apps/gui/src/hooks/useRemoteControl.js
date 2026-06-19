@@ -1,91 +1,95 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useDiagram } from "../context/DiagramContext";
 
-const MAX_RECONNECT_ATTEMPTS = 10;
-const MAX_RECONNECT_DELAY = 30000;
-const HEARTBEAT_INTERVAL = 30000;
-
-function getWsUrl() {
-  const envUrl = import.meta.env.VITE_REMOTE_CONTROL_WS;
-  if (envUrl) return envUrl;
-  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/remote-control`;
-}
-
-export default function useRemoteControl() {
-  const enabled =
-    import.meta.env.VITE_REMOTE_CONTROL_ENABLED === "true" ||
-    import.meta.env.VITE_REMOTE_CONTROL_ENABLED === true;
-
-  const [isConnected, setIsConnected] = useState(false);
+export function useRemoteControl(enabled = false) {
   const wsRef = useRef(null);
-  const reconnectAttempts = useRef(0);
-  const reconnectTimer = useRef(null);
-  const heartbeatTimer = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const pingIntervalRef = useRef(null);
+  const [isConnected, setIsConnected] = useState(false);
+
   const ctx = useDiagram();
+  const ctxRef = useRef(ctx);
+
+  useEffect(() => {
+    ctxRef.current = ctx;
+  }, [ctx]);
+
+  const sendResponse = useCallback((data) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(data));
+    }
+  }, []);
 
   const handleCommand = useCallback(
-    (command, params) => {
+    (message) => {
+      const { id, command, params } = message;
+      const c = ctxRef.current;
+
       try {
         let data;
         switch (command) {
           case "addEntity":
-            data = ctx.addEntity(params.data || params);
+            data = c.addEntity(params.data || params);
             break;
           case "updateEntity":
-            data = ctx.updateEntity(params.id || params.entityId, params.updates || params);
+            data = c.updateEntity(params.id || params.entityId, params.updates || params);
             break;
           case "deleteEntity":
-            ctx.deleteEntity(params.id || params.entityId);
+            c.deleteEntity(params.id || params.entityId);
             data = { deleted: params.id || params.entityId };
             break;
           case "addAttribute":
-            data = ctx.addAttribute(params.entityId, params.attribute || params);
+            data = c.addAttribute(params.entityId, params.attribute || params);
             break;
           case "updateAttribute":
-            data = ctx.updateAttribute(params.entityId, params.attributeId, params.updates || params);
+            data = c.updateAttribute(
+              params.entityId,
+              params.attributeId,
+              params.updates || params,
+            );
             break;
           case "deleteAttribute":
-            ctx.deleteAttribute(params.entityId, params.attributeId);
+            c.deleteAttribute(params.entityId, params.attributeId);
             data = { deleted: params.attributeId };
             break;
           case "setIdentifier":
-            ctx.setIdentifier(params.entityId, params.attributeIds);
+            c.setIdentifier(params.entityId, params.attributeIds);
             data = { entityId: params.entityId, attributeIds: params.attributeIds };
             break;
           case "addReference":
-            data = ctx.addReference(params.data || params);
+            data = c.addReference(params.data || params);
             break;
           case "updateReference":
-            data = ctx.updateReference(params.id || params.referenceId, params.updates || params);
+            data = c.updateReference(params.id || params.referenceId, params.updates || params);
             break;
           case "deleteReference":
-            ctx.deleteReference(params.id || params.referenceId);
+            c.deleteReference(params.id || params.referenceId);
             data = { deleted: params.id || params.referenceId };
             break;
           case "addNote":
-            data = ctx.addNote(params.data || params);
+            data = c.addNote(params.data || params);
             break;
           case "updateNote":
-            data = ctx.updateNote(params.id || params.noteId, params.updates || params);
+            data = c.updateNote(params.id || params.noteId, params.updates || params);
             break;
           case "deleteNote":
-            ctx.deleteNote(params.id || params.noteId);
+            c.deleteNote(params.id || params.noteId);
             data = { deleted: params.id || params.noteId };
             break;
           case "getEntity": {
-            const diagram = ctx.getDiagram();
+            const diagram = c.getDiagram();
             const found = diagram.entities.find(
               (e) =>
                 (params.entityId && e.id === params.entityId) ||
-                (params.entityName && e.name === params.entityName)
+                (params.entityName && e.name === params.entityName),
             );
-            if (!found) return { success: false, error: `Entity not found` };
+            if (!found) throw new Error("Entity not found");
             data = found;
             break;
           }
           case "getEntities": {
-            const all = ctx.getDiagram();
+            const all = c.getDiagram();
             let filtered = all.entities;
             if (params.type) filtered = filtered.filter((e) => e.type === params.type);
             if (params.subtype) filtered = filtered.filter((e) => e.subtype === params.subtype);
@@ -94,105 +98,149 @@ export default function useRemoteControl() {
           }
           case "getDiagram":
           case "exportDiagram":
-            data = ctx.getDiagram();
+            data = c.getDiagram();
             break;
           case "importDiagram":
-            ctx.importDiagram(params.diagram, params.clearCurrent);
+            c.importDiagram(params.diagram, params.clearCurrent);
             data = { imported: true };
             break;
           case "autoLayout":
-            ctx.autoLayout(params?.strategy);
+            c.autoLayout(params?.strategy);
             data = { layoutApplied: true };
             break;
           case "validateModel":
-            data = ctx.validateModel();
+            data = c.validateModel();
             break;
           default:
-            return { success: false, error: `Unknown command: ${command}` };
+            throw new Error(`Unknown command: ${command}`);
         }
-        return { success: true, data };
-      } catch (err) {
-        return { success: false, error: err.message };
+
+        sendResponse({ id, success: true, data });
+      } catch (error) {
+        console.error(`[RemoteControl] Error executing ${command}:`, error);
+        sendResponse({ id, success: false, error: error.message });
       }
     },
-    [ctx]
+    [sendResponse],
   );
 
-  const connect = useCallback(() => {
-    if (!enabled) return;
-
-    const url = getWsUrl();
-    let ws;
-    try {
-      ws = new WebSocket(url);
-    } catch {
+  useEffect(() => {
+    if (!enabled) {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+      setIsConnected(false);
       return;
     }
-    wsRef.current = ws;
 
-    ws.onopen = () => {
-      setIsConnected(true);
-      reconnectAttempts.current = 0;
+    const defaultWsUrl = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/remote-control`;
+    const wsUrl = import.meta.env.VITE_REMOTE_CONTROL_WS || defaultWsUrl;
 
-      // Start heartbeat
-      clearInterval(heartbeatTimer.current);
-      heartbeatTimer.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "ping" }));
-        }
-      }, HEARTBEAT_INTERVAL);
-    };
+    const maxReconnectAttempts = 10;
+    const baseDelay = 1000;
+    const maxDelay = 30000;
 
-    ws.onmessage = (event) => {
-      let msg;
-      try {
-        msg = JSON.parse(event.data);
-      } catch {
+    const connect = () => {
+      if (wsRef.current?.readyState === WebSocket.CONNECTING) {
         return;
       }
 
-      if (msg.type === "pong") return;
+      console.log("[RemoteControl] Connecting to backend...");
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-      if (msg.id && msg.command) {
-        const result = handleCommand(msg.command, msg.params || {});
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ id: msg.id, ...result }));
+      ws.onopen = () => {
+        console.log("[RemoteControl] Connected to backend");
+        setIsConnected(true);
+        reconnectAttemptsRef.current = 0;
+
+        pingIntervalRef.current = setInterval(() => {
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 30000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === "pong") return;
+          handleCommand(message);
+        } catch (error) {
+          console.error("[RemoteControl] Failed to parse message:", error);
         }
-      }
+      };
+
+      ws.onerror = (error) => {
+        console.error("[RemoteControl] WebSocket error:", error);
+      };
+
+      ws.onclose = (event) => {
+        console.log("[RemoteControl] Disconnected from backend", event.code, event.reason);
+        setIsConnected(false);
+        wsRef.current = null;
+
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+          pingIntervalRef.current = null;
+        }
+
+        const wasReplaced = event.code === 1000 && event.reason === "Replaced by new connection";
+        if (wasReplaced) {
+          console.log("[RemoteControl] Connection taken over by another session");
+          reconnectAttemptsRef.current = maxReconnectAttempts;
+          return;
+        }
+
+        if (enabled && reconnectAttemptsRef.current < maxReconnectAttempts) {
+          reconnectAttemptsRef.current++;
+          const exponentialDelay = Math.min(
+            baseDelay * Math.pow(2, reconnectAttemptsRef.current - 1),
+            maxDelay,
+          );
+          const jitter = Math.random() * 1000;
+          const delay = exponentialDelay + jitter;
+
+          console.log(
+            `[RemoteControl] Reconnecting in ${Math.round(delay / 1000)}s (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`,
+          );
+
+          reconnectTimeoutRef.current = setTimeout(connect, delay);
+        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+          console.error("[RemoteControl] Max reconnection attempts reached");
+        }
+      };
     };
 
-    ws.onclose = () => {
-      setIsConnected(false);
-      clearInterval(heartbeatTimer.current);
-      scheduleReconnect();
-    };
-
-    ws.onerror = () => {
-      ws.close();
-    };
-  }, [enabled, handleCommand]);
-
-  const scheduleReconnect = useCallback(() => {
-    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) return;
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), MAX_RECONNECT_DELAY);
-    reconnectAttempts.current += 1;
-    clearTimeout(reconnectTimer.current);
-    reconnectTimer.current = setTimeout(() => {
-      connect();
-    }, delay);
-  }, [connect]);
-
-  useEffect(() => {
     connect();
-    return () => {
-      clearTimeout(reconnectTimer.current);
-      clearInterval(heartbeatTimer.current);
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-      }
-    };
-  }, [connect]);
 
-  return { isConnected };
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+      setIsConnected(false);
+    };
+  }, [enabled, handleCommand, sendResponse]);
+
+  return { isConnected, send: sendResponse };
 }
+
+export default useRemoteControl;
