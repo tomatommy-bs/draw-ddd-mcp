@@ -122,6 +122,19 @@ export function useRemoteControl(enabled = false) {
           case "validateModel":
             data = c.validateModel();
             break;
+          case "addTerm":
+            data = c.addTerm(params.data || params);
+            break;
+          case "updateTerm":
+            data = c.updateTerm(params.id || params.termId, params.updates || params);
+            break;
+          case "deleteTerm":
+            c.deleteTerm(params.id || params.termId);
+            data = { deleted: params.id || params.termId };
+            break;
+          case "listTerms":
+            data = { terms: c.getDiagram().terms || [] };
+            break;
           case "promptUser":
             setPendingPrompt({ id, ...params });
             return;

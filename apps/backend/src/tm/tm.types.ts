@@ -71,6 +71,20 @@ export interface TMNote {
   color: string;
 }
 
+export interface RejectedTerm {
+  term: string;
+  reason: string;
+}
+
+export interface TMTerm {
+  id: string;
+  name: string;
+  definition: string;
+  context: string;
+  rejected: RejectedTerm[];
+  entityRef: string | null;
+}
+
 export interface TMDiagram {
   entities: TMEntity[];
   references: TMReference[];

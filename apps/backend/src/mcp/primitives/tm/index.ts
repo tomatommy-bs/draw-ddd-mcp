@@ -23,6 +23,10 @@ import { ExportDiagramTool } from './tools/export-diagram.tool.js';
 import { ValidateModelTool } from './tools/validate-model.tool.js';
 import { AutoLayoutTool } from './tools/auto-layout.tool.js';
 import { PromptUserTool } from './tools/prompt-user.tool.js';
+import { AddTermTool } from './tools/add-term.tool.js';
+import { UpdateTermTool } from './tools/update-term.tool.js';
+import { DeleteTermTool } from './tools/delete-term.tool.js';
+import { ListTermsTool } from './tools/list-terms.tool.js';
 
 const MCP_PRIMITIVES = [
   AddResourceTool,
@@ -47,6 +51,10 @@ const MCP_PRIMITIVES = [
   ValidateModelTool,
   AutoLayoutTool,
   PromptUserTool,
+  AddTermTool,
+  UpdateTermTool,
+  DeleteTermTool,
+  ListTermsTool,
 ];
 
 /**
@@ -86,3 +94,7 @@ export * from './tools/export-diagram.tool.js';
 export * from './tools/validate-model.tool.js';
 export * from './tools/auto-layout.tool.js';
 export * from './tools/prompt-user.tool.js';
+export * from './tools/add-term.tool.js';
+export * from './tools/update-term.tool.js';
+export * from './tools/delete-term.tool.js';
+export * from './tools/list-terms.tool.js';

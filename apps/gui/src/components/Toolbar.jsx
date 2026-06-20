@@ -3,7 +3,7 @@ import { useDiagram } from "../context/DiagramContext";
 import useRemoteControl from "../hooks/useRemoteControl";
 import PromptModal from "./PromptModal";
 
-export default function Toolbar({ onToggleDebug, showDebug }) {
+export default function Toolbar({ onToggleDebug, showDebug, onToggleGlossary, showGlossary }) {
   const { addEntity, addNote, autoLayout } = useDiagram();
   const enabled =
     import.meta.env.VITE_REMOTE_CONTROL_ENABLED === "true" ||
@@ -61,6 +61,17 @@ export default function Toolbar({ onToggleDebug, showDebug }) {
         </div>
       </div>
       <div className="flex items-center gap-3">
+        <button
+          onClick={onToggleGlossary}
+          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+            showGlossary
+              ? "bg-blue-600 text-white"
+              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+          }`}
+          title="Glossary"
+        >
+          📖
+        </button>
         <button
           onClick={onToggleDebug}
           className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${

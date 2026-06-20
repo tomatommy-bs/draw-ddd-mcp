@@ -72,10 +72,23 @@ function makeNote(overrides = {}) {
   };
 }
 
+function makeTerm(overrides = {}) {
+  const id = overrides.id || nanoid();
+  return {
+    id,
+    name: overrides.name || "",
+    definition: overrides.definition || "",
+    context: overrides.context || "",
+    rejected: overrides.rejected || [],
+    entityRef: overrides.entityRef ?? null,
+  };
+}
+
 export function DiagramProvider({ children }) {
   const [entities, setEntities] = useState([]);
   const [references, setReferences] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [terms, setTerms] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
 
   // Use refs so WS callbacks always see latest state
@@ -85,6 +98,8 @@ export function DiagramProvider({ children }) {
   referencesRef.current = references;
   const notesRef = useRef(notes);
   notesRef.current = notes;
+  const termsRef = useRef(terms);
+  termsRef.current = terms;
 
   // --- Entity CRUD ---
   const addEntity = useCallback((params = {}) => {
@@ -284,12 +299,55 @@ export function DiagramProvider({ children }) {
     setSelectedId((prev) => (prev === noteId ? null : prev));
   }, []);
 
+  // --- Term CRUD ---
+  const addTerm = useCallback((params = {}) => {
+    const term = makeTerm(params);
+    let error = null;
+    setTerms((prev) => {
+      if (prev.some((t) => t.name === term.name)) {
+        error = `Term "${term.name}" already exists`;
+        return prev;
+      }
+      return [...prev, term];
+    });
+    if (error) throw new Error(error);
+    return term;
+  }, []);
+
+  const updateTerm = useCallback((termId, updates) => {
+    let result = null;
+    let error = null;
+    setTerms((prev) => {
+      if (updates.name) {
+        const duplicate = prev.find((t) => t.name === updates.name && t.id !== termId);
+        if (duplicate) {
+          error = `Term "${updates.name}" already exists`;
+          return prev;
+        }
+      }
+      return prev.map((t) => {
+        if (t.id === termId) {
+          result = { ...t, ...updates, id: t.id };
+          return result;
+        }
+        return t;
+      });
+    });
+    if (error) throw new Error(error);
+    return result;
+  }, []);
+
+  const deleteTerm = useCallback((termId) => {
+    setTerms((prev) => prev.filter((t) => t.id !== termId));
+  }, []);
+
   // --- Diagram operations ---
   const getDiagram = useCallback(() => {
     return {
       entities: entitiesRef.current,
       references: referencesRef.current,
       notes: notesRef.current,
+      terms: termsRef.current,
     };
   }, []);
 
@@ -403,6 +461,7 @@ export function DiagramProvider({ children }) {
     entities,
     references,
     notes,
+    terms,
     selectedId,
     setSelectedId,
     addEntity,
@@ -418,6 +477,9 @@ export function DiagramProvider({ children }) {
     addNote,
     updateNote,
     deleteNote,
+    addTerm,
+    updateTerm,
+    deleteTerm,
     getDiagram,
     importDiagram,
     autoLayout,

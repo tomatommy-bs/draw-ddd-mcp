@@ -278,6 +278,22 @@ export class TMClientService {
     return this.sendCommand('autoLayout', { strategy });
   }
 
+  async addTerm(data: any) {
+    return this.sendCommand('addTerm', { data });
+  }
+
+  async updateTerm(id: string, updates: any) {
+    return this.sendCommand('updateTerm', { id, updates });
+  }
+
+  async deleteTerm(id: string) {
+    return this.sendCommand('deleteTerm', { id });
+  }
+
+  async listTerms() {
+    return this.sendCommand('listTerms', {});
+  }
+
   /**
    * Prompt the user in the browser GUI and wait for their response.
    * Uses a 5-minute timeout since this requires human interaction.
