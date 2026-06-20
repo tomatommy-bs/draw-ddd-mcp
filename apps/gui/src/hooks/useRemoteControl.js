@@ -7,6 +7,7 @@ export function useRemoteControl(enabled = false) {
   const reconnectAttemptsRef = useRef(0);
   const pingIntervalRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState(null);
 
   const ctx = useDiagram();
   const ctxRef = useRef(ctx);
@@ -20,6 +21,16 @@ export function useRemoteControl(enabled = false) {
       wsRef.current.send(JSON.stringify(data));
     }
   }, []);
+
+  const respondToPrompt = useCallback(
+    (response) => {
+      if (pendingPrompt) {
+        sendResponse({ id: pendingPrompt.id, success: true, data: response });
+        setPendingPrompt(null);
+      }
+    },
+    [pendingPrompt, sendResponse],
+  );
 
   const handleCommand = useCallback(
     (message) => {
@@ -111,6 +122,9 @@ export function useRemoteControl(enabled = false) {
           case "validateModel":
             data = c.validateModel();
             break;
+          case "promptUser":
+            setPendingPrompt({ id, ...params });
+            return;
           default:
             throw new Error(`Unknown command: ${command}`);
         }
@@ -240,7 +254,7 @@ export function useRemoteControl(enabled = false) {
     };
   }, [enabled, handleCommand, sendResponse]);
 
-  return { isConnected, send: sendResponse };
+  return { isConnected, send: sendResponse, pendingPrompt, respondToPrompt };
 }
 
 export default useRemoteControl;

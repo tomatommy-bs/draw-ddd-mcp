@@ -1,13 +1,14 @@
 import React from "react";
 import { useDiagram } from "../context/DiagramContext";
 import useRemoteControl from "../hooks/useRemoteControl";
+import PromptModal from "./PromptModal";
 
 export default function Toolbar({ onToggleDebug, showDebug }) {
   const { addEntity, addNote, autoLayout } = useDiagram();
   const enabled =
     import.meta.env.VITE_REMOTE_CONTROL_ENABLED === "true" ||
     import.meta.env.VITE_REMOTE_CONTROL_ENABLED === true;
-  const { isConnected } = useRemoteControl(enabled);
+  const { isConnected, pendingPrompt, respondToPrompt } = useRemoteControl(enabled);
 
   const handleAddResource = () => {
     addEntity({ type: "resource", name: "NewResource", color: "#3b82f6" });
@@ -78,6 +79,9 @@ export default function Toolbar({ onToggleDebug, showDebug }) {
         />
         {isConnected ? "Connected" : "Disconnected"}
       </div>
+      {pendingPrompt && (
+        <PromptModal prompt={pendingPrompt} onRespond={respondToPrompt} />
+      )}
     </div>
   );
 }

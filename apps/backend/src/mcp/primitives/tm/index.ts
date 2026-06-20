@@ -22,6 +22,7 @@ import { ImportDiagramTool } from './tools/import-diagram.tool.js';
 import { ExportDiagramTool } from './tools/export-diagram.tool.js';
 import { ValidateModelTool } from './tools/validate-model.tool.js';
 import { AutoLayoutTool } from './tools/auto-layout.tool.js';
+import { PromptUserTool } from './tools/prompt-user.tool.js';
 
 const MCP_PRIMITIVES = [
   AddResourceTool,
@@ -45,6 +46,7 @@ const MCP_PRIMITIVES = [
   ExportDiagramTool,
   ValidateModelTool,
   AutoLayoutTool,
+  PromptUserTool,
 ];
 
 /**
@@ -83,3 +85,4 @@ export * from './tools/import-diagram.tool.js';
 export * from './tools/export-diagram.tool.js';
 export * from './tools/validate-model.tool.js';
 export * from './tools/auto-layout.tool.js';
+export * from './tools/prompt-user.tool.js';

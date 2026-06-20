@@ -101,7 +101,11 @@ export class TMClientService {
   /**
    * Send a command to TM client and wait for response
    */
-  async sendCommand<T = any>(command: string, params: Record<string, any> = {}): Promise<T> {
+  async sendCommand<T = any>(
+    command: string,
+    params: Record<string, any> = {},
+    timeoutMs?: number,
+  ): Promise<T> {
     if (!this.isConnected()) {
       throw new Error(
         'TM modeling client is not connected. Make sure the TM modeling frontend is running with remote control enabled.',
@@ -110,12 +114,13 @@ export class TMClientService {
 
     const id = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const message: TMCommand = { id, command, params };
+    const effectiveTimeout = timeoutMs ?? this.requestTimeout;
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pendingRequests.delete(id);
-        reject(new Error(`Command ${command} timed out after ${this.requestTimeout}ms`));
-      }, this.requestTimeout);
+        reject(new Error(`Command ${command} timed out after ${effectiveTimeout}ms`));
+      }, effectiveTimeout);
 
       this.pendingRequests.set(id, { resolve, reject, timeout });
 
@@ -271,5 +276,18 @@ export class TMClientService {
    */
   async autoLayout(strategy: string) {
     return this.sendCommand('autoLayout', { strategy });
+  }
+
+  /**
+   * Prompt the user in the browser GUI and wait for their response.
+   * Uses a 5-minute timeout since this requires human interaction.
+   */
+  async promptUser(prompt: {
+    title: string;
+    message: string;
+    type: 'select' | 'text' | 'confirm';
+    options?: string[];
+  }) {
+    return this.sendCommand('promptUser', prompt, 5 * 60 * 1000);
   }
 }
