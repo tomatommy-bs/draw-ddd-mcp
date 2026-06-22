@@ -46,15 +46,15 @@ export default function TMNote({ note }) {
     <g transform={`translate(${note.x}, ${note.y})`}>
       {isSelected && (
         <rect
-          x={-3}
-          y={-3}
-          width={(note.width || 200) + 6}
-          height={(note.height || 120) + 6}
-          rx={4}
+          x={-2}
+          y={-2}
+          width={(note.width || 200) + 4}
+          height={(note.height || 120) + 4}
+          rx={10}
           fill="none"
-          stroke="#2563eb"
-          strokeWidth={2}
-          strokeDasharray="6 3"
+          stroke="#10b981"
+          strokeWidth={1.5}
+          opacity={0.5}
         />
       )}
 
@@ -69,17 +69,19 @@ export default function TMNote({ note }) {
           style={{
             width: "100%",
             height: "100%",
-            backgroundColor: note.color || "#fbbf24",
-            borderRadius: 4,
-            padding: "8px 10px",
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: '8px',
+            padding: "10px 12px",
             fontSize: "12px",
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            color: "#1f2937",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+            fontFamily: "'Inter', -apple-system, sans-serif",
+            color: '#525252',
             overflow: "hidden",
             userSelect: "none",
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
+            lineHeight: 1.5,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           }}
         >
           {note.content || "Empty note"}

@@ -1,8 +1,8 @@
 import React from "react";
 import { ENTITY_WIDTH } from "./TMEntity";
 
-const HEADER_HEIGHT = 32;
-const ROW_HEIGHT = 24;
+const HEADER_HEIGHT = 36;
+const ROW_HEIGHT = 28;
 
 function getEntityTotalHeight(entity) {
   const identifiers = (entity.attributes || []).filter((a) => a.isIdentifier);
@@ -37,11 +37,9 @@ function getEdgePoint(entity, targetCenter) {
 
   let ex, ey;
   if (absDx / hw > absDy / hh) {
-    // Hit left or right edge
     ex = cx + (dx > 0 ? hw : -hw);
     ey = cy + (dy * hw) / absDx;
   } else {
-    // Hit top or bottom edge
     ey = cy + (dy > 0 ? hh : -hh);
     ex = cx + (dx * hh) / absDy;
   }
@@ -64,12 +62,10 @@ export default function TMReference({ reference, entities }) {
   const midX = (start.x + end.x) / 2;
   const midY = (start.y + end.y) / 2;
 
-  // Parse cardinality
   const parts = (reference.cardinality || "1:N").split(":");
   const sourceCard = parts[0] || "1";
   const targetCard = parts[1] || "N";
 
-  // Offset labels slightly from endpoints
   const labelOffset = 20;
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -84,49 +80,48 @@ export default function TMReference({ reference, entities }) {
         y1={start.y}
         x2={end.x}
         y2={end.y}
-        stroke="#6b7280"
-        strokeWidth={1.5}
+        stroke="#d4d4d4"
+        strokeWidth={1}
         markerEnd="url(#arrowhead)"
       />
 
-      {/* Source cardinality label */}
       <text
         x={start.x + ux * labelOffset + uy * 10}
         y={start.y + uy * labelOffset - ux * 10}
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize={11}
-        fontWeight={600}
-        fill="#374151"
+        fontSize={10}
+        fontWeight={500}
+        fontFamily="'JetBrains Mono', monospace"
+        fill="#a3a3a3"
       >
         {sourceCard}
       </text>
 
-      {/* Target cardinality label */}
       <text
         x={end.x - ux * labelOffset + uy * 10}
         y={end.y - uy * labelOffset - ux * 10}
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize={11}
-        fontWeight={600}
-        fill="#374151"
+        fontSize={10}
+        fontWeight={500}
+        fontFamily="'JetBrains Mono', monospace"
+        fill="#a3a3a3"
       >
         {targetCard}
       </text>
 
-      {/* Midpoint label */}
       {reference.label && (
         <>
           <rect
             x={midX - 30}
-            y={midY - 9}
+            y={midY - 10}
             width={60}
-            height={18}
-            rx={3}
-            fill="white"
-            stroke="#d1d5db"
-            strokeWidth={0.5}
+            height={20}
+            rx={4}
+            fill="#ffffff"
+            stroke="#e5e5e5"
+            strokeWidth={1}
           />
           <text
             x={midX}
@@ -134,7 +129,8 @@ export default function TMReference({ reference, entities }) {
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={10}
-            fill="#6b7280"
+            fontFamily="'JetBrains Mono', monospace"
+            fill="#a3a3a3"
           >
             {reference.label}
           </text>

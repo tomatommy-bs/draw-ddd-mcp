@@ -3,6 +3,18 @@ import { useDiagram } from "../context/DiagramContext";
 import { parseRefs } from "../utils/glossaryRefs";
 import DefinitionText from "./DefinitionText";
 
+const inputStyle = {
+  width: '100%',
+  backgroundColor: 'var(--bg-overlay)',
+  border: '1px solid var(--border-default)',
+  borderRadius: '6px',
+  padding: '6px 10px',
+  fontSize: '13px',
+  color: 'var(--text-primary)',
+  outline: 'none',
+  fontFamily: "'Inter', -apple-system, sans-serif",
+};
+
 function TermForm({ initial, onSubmit, onCancel, submitLabel }) {
   const [name, setName] = useState(initial?.name || "");
   const [definition, setDefinition] = useState(initial?.definition || "");
@@ -15,12 +27,16 @@ function TermForm({ initial, onSubmit, onCancel, submitLabel }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 p-3 bg-gray-700 rounded">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-2 p-3 rounded-lg"
+      style={{ backgroundColor: 'var(--bg-overlay)', border: '1px solid var(--border-default)' }}
+    >
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="用語名"
-        className="w-full px-2 py-1 text-sm bg-gray-800 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+        style={inputStyle}
         autoFocus
       />
       <textarea
@@ -28,25 +44,34 @@ function TermForm({ initial, onSubmit, onCancel, submitLabel }) {
         onChange={(e) => setDefinition(e.target.value)}
         placeholder="定義 (例: [[R:顧客]] が [[E:受注]] を...)"
         rows={3}
-        className="w-full px-2 py-1 text-sm bg-gray-800 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none resize-none"
+        style={{ ...inputStyle, resize: 'none' }}
       />
       <input
         value={context}
         onChange={(e) => setContext(e.target.value)}
         placeholder="文脈 (例: 営業チームの業務フロー)"
-        className="w-full px-2 py-1 text-sm bg-gray-800 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+        style={inputStyle}
       />
       <div className="flex gap-2">
         <button
           type="submit"
-          className="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-500"
+          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+          style={{
+            backgroundColor: 'var(--accent-brand)',
+            color: '#fff',
+          }}
         >
           {submitLabel}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-1 text-xs font-medium bg-gray-600 text-white rounded hover:bg-gray-500"
+          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+          style={{
+            backgroundColor: 'var(--bg-muted)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-default)',
+          }}
         >
           キャンセル
         </button>
@@ -94,66 +119,79 @@ function TermCard({ term, entities, selectedId, onEntityClick }) {
   }
 
   return (
-    <div className="p-3 bg-gray-800 rounded border border-gray-700 hover:border-gray-600 transition-colors">
-      <div className="flex items-center justify-between mb-1">
+    <div
+      className="p-3 rounded-lg transition-colors"
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        border: `1px solid ${isDirectMatch ? 'rgba(245,158,11,0.3)' : 'var(--border-default)'}`,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           {isDirectMatch && (
-            <span className="text-amber-400 text-xs" title="直接対応">✦</span>
+            <span style={{ color: '#f59e0b', fontSize: '10px' }} title="直接対応">&#9670;</span>
           )}
-          <span className="font-medium text-white text-sm">{term.name}</span>
+          <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+            {term.name}
+          </span>
           {linkedEntity && (
             <span
-              className={`text-xs px-1.5 py-0.5 rounded ${
-                linkedEntity.type === "resource"
-                  ? "bg-blue-900 text-blue-300"
-                  : "bg-amber-900 text-amber-300"
-              }`}
+              className="text-xs px-1.5 py-0.5 rounded"
+              style={{
+                backgroundColor: linkedEntity.type === "resource"
+                  ? 'var(--accent-resource-muted)'
+                  : 'var(--accent-event-muted)',
+                color: linkedEntity.type === "resource"
+                  ? 'var(--accent-resource)'
+                  : 'var(--accent-event)',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '10px',
+              }}
             >
               {linkedEntity.type === "resource" ? "R" : "E"}:{linkedEntity.name}
             </span>
           )}
           {term.entityRef && !linkedEntity && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-red-900 text-red-300">
+            <span
+              className="text-xs px-1.5 py-0.5 rounded"
+              style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: '10px' }}
+            >
               unlinked
             </span>
           )}
         </div>
         <div className="flex gap-1">
-          <button
-            onClick={() => setEditing(true)}
-            className="text-gray-400 hover:text-white text-xs px-1"
-            title="編集"
-          >
-            ✎
-          </button>
+          <IconButton onClick={() => setEditing(true)} title="編集">
+            <EditIcon />
+          </IconButton>
           {confirmDelete ? (
             <button
               onClick={handleDelete}
-              className="text-red-400 hover:text-red-300 text-xs px-1"
+              className="text-xs px-1.5 py-0.5 rounded transition-colors"
+              style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)' }}
             >
               確認
             </button>
           ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="text-gray-400 hover:text-red-400 text-xs px-1"
-              title="削除"
-            >
-              ✕
-            </button>
+            <IconButton onClick={() => setConfirmDelete(true)} title="削除" hoverColor="#ef4444">
+              <CloseIcon />
+            </IconButton>
           )}
         </div>
       </div>
-      <div className="text-gray-300 text-xs leading-relaxed">
+      <div className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
         <DefinitionText text={term.definition} onEntityClick={onEntityClick} />
       </div>
       {term.context && (
-        <div className="text-gray-500 text-xs mt-1">📋 {term.context}</div>
+        <div className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+          {term.context}
+        </div>
       )}
       {term.rejected?.length > 0 && (
-        <div className="mt-1 space-y-0.5">
+        <div className="mt-1.5 space-y-0.5">
           {term.rejected.map((r, i) => (
-            <div key={i} className="text-gray-500 text-xs">
+            <div key={i} className="text-xs" style={{ color: 'var(--text-muted)' }}>
               <span className="line-through">{r.term}</span> — {r.reason}
             </div>
           ))}
@@ -172,7 +210,6 @@ export default function GlossaryPanel() {
   const filteredTerms = useMemo(() => {
     let result = terms;
 
-    // Filter by selected entity
     if (selectedId) {
       const selectedEntity = entities.find((e) => e.id === selectedId);
       if (selectedEntity) {
@@ -186,7 +223,6 @@ export default function GlossaryPanel() {
       }
     }
 
-    // Filter by search
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       result = result.filter(
@@ -209,21 +245,38 @@ export default function GlossaryPanel() {
   };
 
   return (
-    <div className="w-80 bg-gray-900 border-l border-gray-700 flex flex-col h-full overflow-hidden">
-      <div className="p-3 border-b border-gray-700">
+    <div
+      className="w-80 flex flex-col h-full overflow-hidden"
+      style={{
+        backgroundColor: 'var(--bg-overlay)',
+        borderLeft: '1px solid var(--border-default)',
+      }}
+    >
+      <div className="p-3" style={{ borderBottom: '1px solid var(--border-default)' }}>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-bold text-white">📖 Glossary</span>
-          <span className="text-xs text-gray-500">{filteredTerms.length}/{terms.length}</span>
+          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Glossary
+          </span>
+          <span
+            className="text-xs px-1.5 py-0.5 rounded"
+            style={{
+              backgroundColor: 'var(--bg-muted)',
+              color: 'var(--text-muted)',
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            {filteredTerms.length}/{terms.length}
+          </span>
         </div>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="検索..."
-          className="w-full px-2 py-1 text-sm bg-gray-800 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+          style={inputStyle}
         />
         {selectedId && entities.find((e) => e.id === selectedId) && (
-          <div className="mt-1 text-xs text-amber-400">
-            ▸ {entities.find((e) => e.id === selectedId)?.name} の関連用語
+          <div className="mt-1.5 text-xs" style={{ color: 'var(--accent-event)' }}>
+            {entities.find((e) => e.id === selectedId)?.name} の関連用語
           </div>
         )}
       </div>
@@ -239,13 +292,13 @@ export default function GlossaryPanel() {
           />
         ))}
         {filteredTerms.length === 0 && (
-          <div className="text-gray-500 text-xs text-center py-4">
+          <div className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>
             {terms.length === 0 ? "用語がまだ登録されていません" : "一致する用語がありません"}
           </div>
         )}
       </div>
 
-      <div className="p-3 border-t border-gray-700">
+      <div className="p-3" style={{ borderTop: '1px solid var(--border-default)' }}>
         {showAddForm ? (
           <TermForm
             onSubmit={handleAdd}
@@ -255,12 +308,56 @@ export default function GlossaryPanel() {
         ) : (
           <button
             onClick={() => setShowAddForm(true)}
-            className="w-full px-3 py-1.5 text-sm font-medium bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+            className="w-full px-3 py-2 text-sm font-medium rounded-md transition-colors"
+            style={{
+              backgroundColor: 'var(--bg-muted)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-default)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border-strong)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border-default)';
+            }}
           >
             + 用語を追加
           </button>
         )}
       </div>
     </div>
+  );
+}
+
+function IconButton({ onClick, title, children, hoverColor = 'var(--text-primary)' }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="text-xs px-1 transition-colors"
+      style={{ color: 'var(--text-muted)' }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = hoverColor; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
   );
 }

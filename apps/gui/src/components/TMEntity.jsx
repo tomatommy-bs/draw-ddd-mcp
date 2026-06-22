@@ -2,8 +2,8 @@ import React, { useRef, useCallback, useState } from "react";
 import { useDiagram } from "../context/DiagramContext";
 
 export const ENTITY_WIDTH = 280;
-const HEADER_HEIGHT = 32;
-const ROW_HEIGHT = 24;
+const HEADER_HEIGHT = 36;
+const ROW_HEIGHT = 28;
 const MIN_ROWS = 1;
 const ID_COL_RATIO = 0.4;
 const ID_COL_WIDTH = Math.floor(ENTITY_WIDTH * ID_COL_RATIO);
@@ -21,8 +21,11 @@ export default function TMEntity({ entity }) {
   const bodyHeight = rowCount * ROW_HEIGHT;
   const totalHeight = HEADER_HEIGHT + bodyHeight;
 
-  const headerColor = entity.color || (entity.type === "resource" ? "#3b82f6" : "#eab308");
-  const bodyBg = entity.type === "resource" ? "#f0f7ff" : "#fffbeb";
+  const isResource = entity.type === "resource";
+  const accentColor = isResource ? '#3b82f6' : '#f59e0b';
+  const accentMuted = isResource
+    ? 'rgba(59,130,246,0.06)'
+    : 'rgba(245,158,11,0.06)';
 
   const handleMouseDown = useCallback(
     (e) => {
@@ -70,12 +73,15 @@ export default function TMEntity({ entity }) {
           height: ROW_HEIGHT,
           display: "flex",
           alignItems: "center",
-          padding: "0 6px",
-          fontWeight: 600,
-          color: "#111827",
+          padding: "0 10px",
+          fontWeight: 500,
+          color: '#171717',
           overflow: "hidden",
           whiteSpace: "nowrap",
           textOverflow: "ellipsis",
+          fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
+          fontSize: '11px',
+          letterSpacing: '0.01em',
         }}
       >
         {label}
@@ -92,11 +98,14 @@ export default function TMEntity({ entity }) {
           height: ROW_HEIGHT,
           display: "flex",
           alignItems: "center",
-          padding: "0 6px",
-          color: "#374151",
+          padding: "0 10px",
+          color: '#525252',
           overflow: "hidden",
           whiteSpace: "nowrap",
           textOverflow: "ellipsis",
+          fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
+          fontSize: '11px',
+          letterSpacing: '0.01em',
         }}
       >
         {attr.name}
@@ -108,16 +117,16 @@ export default function TMEntity({ entity }) {
     <g transform={`translate(${entity.x}, ${entity.y})`}>
       {isSelected && (
         <rect
-          x={-3}
-          y={-3}
-          width={ENTITY_WIDTH + 6}
-          height={totalHeight + 6}
-          rx={2}
-          ry={2}
+          x={-2}
+          y={-2}
+          width={ENTITY_WIDTH + 4}
+          height={totalHeight + 4}
+          rx={10}
+          ry={10}
           fill="none"
-          stroke="#2563eb"
-          strokeWidth={2}
-          strokeDasharray="6 3"
+          stroke={accentColor}
+          strokeWidth={1.5}
+          opacity={0.5}
         />
       )}
 
@@ -133,24 +142,27 @@ export default function TMEntity({ entity }) {
             width: ENTITY_WIDTH,
             height: totalHeight,
             overflow: "hidden",
-            border: "2px solid #1f2937",
+            border: `1px solid ${isSelected ? accentColor : '#e5e5e5'}`,
+            borderRadius: '8px',
             userSelect: "none",
             fontSize: "12px",
-            fontFamily: "'Noto Sans JP', 'Hiragino Sans', -apple-system, sans-serif",
+            fontFamily: "'Inter', -apple-system, sans-serif",
+            backgroundColor: '#ffffff',
+            boxShadow: isSelected
+              ? `0 0 0 3px ${isResource ? 'rgba(59,130,246,0.12)' : 'rgba(245,158,11,0.12)'}, 0 4px 12px rgba(0,0,0,0.08)`
+              : '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+            transition: 'border-color 0.15s, box-shadow 0.15s',
           }}
         >
-          {/* Header: name left, R/E badge right */}
           <div
             style={{
               height: HEADER_HEIGHT,
-              backgroundColor: headerColor,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "0 8px",
-              color: "#ffffff",
-              fontWeight: 700,
-              borderBottom: "2px solid #1f2937",
+              padding: "0 12px",
+              borderBottom: '1px solid #e5e5e5',
+              background: `linear-gradient(135deg, ${accentMuted} 0%, transparent 60%)`,
             }}
           >
             <span
@@ -159,36 +171,46 @@ export default function TMEntity({ entity }) {
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
                 flex: 1,
+                fontWeight: 600,
+                fontSize: '13px',
+                color: '#171717',
+                letterSpacing: '-0.01em',
               }}
             >
               {entity.name}
             </span>
             <span
               style={{
-                fontSize: "11px",
-                fontWeight: 800,
+                fontSize: '10px',
+                fontWeight: 600,
                 marginLeft: 8,
                 flexShrink: 0,
+                padding: '2px 6px',
+                borderRadius: '4px',
+                backgroundColor: isResource
+                  ? 'rgba(59,130,246,0.1)'
+                  : 'rgba(245,158,11,0.1)',
+                color: accentColor,
+                fontFamily: "'JetBrains Mono', monospace",
+                letterSpacing: '0.05em',
               }}
             >
-              {entity.type === "resource" ? "R" : "E"}
+              {isResource ? "R" : "E"}
             </span>
           </div>
 
-          {/* Body: two-column T-shaped layout */}
           <div
             style={{
               display: "flex",
               height: bodyHeight,
-              backgroundColor: bodyBg,
             }}
           >
-            {/* Left column: identifiers */}
             <div
               style={{
                 width: ID_COL_WIDTH,
-                borderRight: "2px solid #1f2937",
+                borderRight: '1px solid #e5e5e5',
                 overflow: "hidden",
+                backgroundColor: accentMuted,
               }}
             >
               {Array.from({ length: rowCount }, (_, i) =>
@@ -196,7 +218,6 @@ export default function TMEntity({ entity }) {
               )}
             </div>
 
-            {/* Right column: general attributes */}
             <div
               style={{
                 width: ATTR_COL_WIDTH,

@@ -25,18 +25,28 @@ export default function DebugPanel({ onClose }) {
   const content = getContent();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-72 bg-gray-900 text-green-400 border-t-2 border-green-500 flex flex-col z-50 font-mono text-xs">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700 shrink-0">
+    <div
+      className="fixed bottom-0 left-0 right-0 h-72 flex flex-col z-50 text-xs"
+      style={{
+        backgroundColor: '#1e1e1e',
+        borderTop: '2px solid var(--accent-brand)',
+        fontFamily: "'JetBrains Mono', monospace",
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-3 py-1.5 shrink-0"
+        style={{ backgroundColor: '#171717', borderBottom: '1px solid #333' }}
+      >
         <div className="flex items-center gap-1 overflow-x-auto">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-2 py-0.5 rounded whitespace-nowrap ${
-                tab === t.id
-                  ? "bg-green-700 text-white"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-gray-700"
-              }`}
+              className="px-2 py-0.5 rounded whitespace-nowrap transition-colors"
+              style={{
+                backgroundColor: tab === t.id ? 'rgba(16,185,129,0.15)' : 'transparent',
+                color: tab === t.id ? '#10b981' : '#666',
+              }}
             >
               {t.label}
             </button>
@@ -44,12 +54,18 @@ export default function DebugPanel({ onClose }) {
         </div>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-white ml-2 text-lg leading-none shrink-0"
+          className="ml-2 text-lg leading-none shrink-0 transition-colors"
+          style={{ color: '#666' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#ededed'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#666'; }}
         >
           &times;
         </button>
       </div>
-      <pre className="flex-1 overflow-auto p-3 leading-tight">
+      <pre
+        className="flex-1 overflow-auto p-3 leading-tight"
+        style={{ color: '#10b981' }}
+      >
         {content ? JSON.stringify(content, null, 2) : "Not found"}
       </pre>
     </div>

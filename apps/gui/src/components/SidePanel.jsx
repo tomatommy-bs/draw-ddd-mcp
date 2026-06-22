@@ -3,9 +3,9 @@ import { useDiagram } from "../context/DiagramContext";
 
 const PRESET_COLORS = [
   "#3b82f6", "#2563eb", "#1d4ed8",
-  "#ef4444", "#dc2626", "#b91c1c",
-  "#22c55e", "#16a34a", "#15803d",
   "#f59e0b", "#d97706", "#b45309",
+  "#22c55e", "#16a34a", "#15803d",
+  "#ef4444", "#dc2626", "#b91c1c",
   "#8b5cf6", "#7c3aed", "#6d28d9",
   "#6b7280", "#4b5563", "#374151",
 ];
@@ -14,6 +14,29 @@ const DATA_TYPES = [
   "string", "integer", "float", "boolean", "date", "datetime", "timestamp",
   "text", "uuid", "json", "decimal", "bigint",
 ];
+
+const inputStyle = {
+  width: '100%',
+  backgroundColor: 'var(--bg-overlay)',
+  border: '1px solid var(--border-default)',
+  borderRadius: '6px',
+  padding: '6px 10px',
+  fontSize: '13px',
+  color: 'var(--text-primary)',
+  outline: 'none',
+  transition: 'border-color 0.15s',
+  fontFamily: "'Inter', -apple-system, sans-serif",
+};
+
+const labelStyle = {
+  display: 'block',
+  fontSize: '11px',
+  fontWeight: 500,
+  color: 'var(--text-muted)',
+  marginBottom: '4px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+};
 
 export default function SidePanel() {
   const {
@@ -42,97 +65,92 @@ export default function SidePanel() {
     setConfirmDelete(false);
   };
 
-  // --- Note panel ---
   if (selectedNote) {
     return (
-      <div className="w-80 bg-white border-l border-gray-200 flex flex-col overflow-y-auto shrink-0">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <span className="font-semibold text-sm text-gray-700">Note</span>
-          <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">
-            &times;
-          </button>
-        </div>
+      <div
+        className="w-80 flex flex-col overflow-y-auto shrink-0"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderLeft: '1px solid var(--border-default)',
+        }}
+      >
+        <PanelHeader title="Note" onClose={handleClose} />
 
         <div className="p-4 flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Content</label>
+            <label style={labelStyle}>Content</label>
             <textarea
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm resize-y min-h-[80px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }}
               rows={5}
               value={selectedNote.content}
               onChange={(e) => updateNote(selectedNote.id, { content: e.target.value })}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--accent-brand)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--border-default)'; }}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
-            <div className="flex flex-wrap gap-1.5">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => updateNote(selectedNote.id, { color: c })}
-                  className="w-6 h-6 rounded border-2 transition-transform hover:scale-110"
-                  style={{
-                    backgroundColor: c,
-                    borderColor: selectedNote.color === c ? "#111827" : "transparent",
-                  }}
-                />
-              ))}
-            </div>
+            <label style={labelStyle}>Color</label>
+            <ColorPicker
+              colors={PRESET_COLORS}
+              selected={selectedNote.color}
+              onChange={(c) => updateNote(selectedNote.id, { color: c })}
+            />
           </div>
 
-          <button
+          <DangerButton
+            label="Delete Note"
             onClick={() => {
               deleteNote(selectedNote.id);
               setConfirmDelete(false);
             }}
-            className="mt-4 w-full py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
-          >
-            Delete Note
-          </button>
+          />
         </div>
       </div>
     );
   }
 
-  // --- Entity panel ---
   const entity = selectedEntity;
+  const isResource = entity.type === "resource";
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col overflow-y-auto shrink-0">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
-        <span className="font-semibold text-sm text-gray-700">
-          {entity.type === "resource" ? "Resource" : "Event"} Entity
-        </span>
-        <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">
-          &times;
-        </button>
-      </div>
+    <div
+      className="w-80 flex flex-col overflow-y-auto shrink-0"
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        borderLeft: '1px solid var(--border-default)',
+      }}
+    >
+      <PanelHeader
+        title={isResource ? "Resource" : "Event"}
+        badge={isResource ? "R" : "E"}
+        badgeColor={isResource ? '#3b82f6' : '#f59e0b'}
+        onClose={handleClose}
+      />
 
       <div className="p-4 flex flex-col gap-4 flex-1">
-        {/* Name */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+          <label style={labelStyle}>Name</label>
           <input
             type="text"
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            style={inputStyle}
             value={entity.name}
             onChange={(e) => updateEntity(entity.id, { name: e.target.value })}
+            onFocus={(e) => { e.target.style.borderColor = 'var(--accent-brand)'; }}
+            onBlur={(e) => { e.target.style.borderColor = 'var(--border-default)'; }}
           />
         </div>
 
-        {/* Type */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
+          <label style={labelStyle}>Type</label>
           <select
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            style={{ ...inputStyle, cursor: 'pointer' }}
             value={entity.type}
             onChange={(e) => {
               const newType = e.target.value;
               updateEntity(entity.id, {
                 type: newType,
-                color: newType === "resource" ? "#3b82f6" : "#ef4444",
+                color: newType === "resource" ? "#3b82f6" : "#f59e0b",
               });
             }}
           >
@@ -141,11 +159,10 @@ export default function SidePanel() {
           </select>
         </div>
 
-        {/* Subtype */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Subtype</label>
+          <label style={labelStyle}>Subtype</label>
           <select
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            style={{ ...inputStyle, cursor: 'pointer' }}
             value={entity.subtype}
             onChange={(e) => updateEntity(entity.id, { subtype: e.target.value })}
           >
@@ -155,49 +172,47 @@ export default function SidePanel() {
           </select>
         </div>
 
-        {/* Color */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
-          <div className="flex flex-wrap gap-1.5">
-            {PRESET_COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => updateEntity(entity.id, { color: c })}
-                className="w-6 h-6 rounded border-2 transition-transform hover:scale-110"
-                style={{
-                  backgroundColor: c,
-                  borderColor: entity.color === c ? "#111827" : "transparent",
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Comment */}
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Comment</label>
-          <textarea
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm resize-y min-h-[48px] focus:outline-none focus:ring-1 focus:ring-blue-500"
-            rows={2}
-            value={entity.comment}
-            onChange={(e) => updateEntity(entity.id, { comment: e.target.value })}
+          <label style={labelStyle}>Color</label>
+          <ColorPicker
+            colors={PRESET_COLORS}
+            selected={entity.color}
+            onChange={(c) => updateEntity(entity.id, { color: c })}
           />
         </div>
 
-        {/* Attributes */}
+        <div>
+          <label style={labelStyle}>Comment</label>
+          <textarea
+            style={{ ...inputStyle, resize: 'vertical', minHeight: 48 }}
+            rows={2}
+            value={entity.comment}
+            onChange={(e) => updateEntity(entity.id, { comment: e.target.value })}
+            onFocus={(e) => { e.target.style.borderColor = 'var(--accent-brand)'; }}
+            onBlur={(e) => { e.target.style.borderColor = 'var(--border-default)'; }}
+          />
+        </div>
+
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium text-gray-500">Attributes</label>
+            <label style={{ ...labelStyle, marginBottom: 0 }}>Attributes</label>
             <button
               onClick={() => addAttribute(entity.id)}
-              className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              className="text-xs px-2.5 py-1 rounded-md font-medium transition-colors"
+              style={{
+                backgroundColor: 'var(--accent-brand-muted)',
+                color: 'var(--accent-brand)',
+                border: '1px solid rgba(16,185,129,0.2)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(16,185,129,0.15)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-brand-muted)'; }}
             >
-              + Add Attribute
+              + Add
             </button>
           </div>
 
           {entity.attributes.length === 0 ? (
-            <p className="text-xs text-gray-400 italic">No attributes yet.</p>
+            <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>No attributes yet.</p>
           ) : (
             <div className="flex flex-col gap-2">
               {entity.attributes.map((attr) => (
@@ -214,15 +229,20 @@ export default function SidePanel() {
         </div>
       </div>
 
-      {/* Debug JSON */}
       <DebugJson entity={entity} />
 
-      {/* Delete button */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4" style={{ borderTop: '1px solid var(--border-default)' }}>
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="w-full py-2 text-sm font-medium text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors"
+            className="w-full py-2 text-sm font-medium rounded-md transition-colors"
+            style={{
+              color: '#ef4444',
+              border: '1px solid rgba(239,68,68,0.2)',
+              backgroundColor: 'transparent',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.05)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
           >
             Delete Entity
           </button>
@@ -233,13 +253,19 @@ export default function SidePanel() {
                 deleteEntity(entity.id);
                 setConfirmDelete(false);
               }}
-              className="flex-1 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
+              className="flex-1 py-2 text-sm font-medium rounded-md transition-colors"
+              style={{ backgroundColor: '#ef4444', color: '#fff' }}
             >
-              Confirm Delete
+              Confirm
             </button>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="flex-1 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              className="flex-1 py-2 text-sm font-medium rounded-md transition-colors"
+              style={{
+                backgroundColor: 'var(--bg-muted)',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-default)',
+              }}
             >
               Cancel
             </button>
@@ -247,6 +273,79 @@ export default function SidePanel() {
         )}
       </div>
     </div>
+  );
+}
+
+function PanelHeader({ title, badge, badgeColor, onClose }) {
+  return (
+    <div
+      className="flex items-center justify-between px-4 py-3 shrink-0"
+      style={{
+        borderBottom: '1px solid var(--border-default)',
+        backgroundColor: 'var(--bg-surface)',
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+          {title}
+        </span>
+        {badge && (
+          <span
+            className="text-xs font-semibold px-1.5 py-0.5 rounded"
+            style={{
+              backgroundColor: `${badgeColor}15`,
+              color: badgeColor,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            {badge}
+          </span>
+        )}
+      </div>
+      <button
+        onClick={onClose}
+        className="text-lg leading-none transition-colors"
+        style={{ color: 'var(--text-muted)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+      >
+        &times;
+      </button>
+    </div>
+  );
+}
+
+function ColorPicker({ colors, selected, onChange }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {colors.map((c) => (
+        <button
+          key={c}
+          onClick={() => onChange(c)}
+          className="w-6 h-6 rounded-md transition-all"
+          style={{
+            backgroundColor: c,
+            border: selected === c ? '2px solid var(--text-primary)' : '2px solid transparent',
+            opacity: selected === c ? 1 : 0.6,
+            transform: selected === c ? 'scale(1.1)' : 'scale(1)',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DangerButton({ label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mt-4 w-full py-2 text-sm font-medium rounded-md transition-colors"
+      style={{ backgroundColor: '#ef4444', color: '#fff' }}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#dc2626'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ef4444'; }}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -261,12 +360,23 @@ function DebugJson({ entity }) {
     <div className="px-4 pb-2">
       <button
         onClick={() => setOpen(!open)}
-        className="text-xs text-gray-400 hover:text-gray-600 font-mono"
+        className="text-xs font-mono transition-colors"
+        style={{ color: 'var(--text-muted)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
       >
         {open ? "▼" : "▶"} Debug JSON
       </button>
       {open && (
-        <pre className="mt-1 p-2 bg-gray-900 text-green-400 text-[10px] leading-tight rounded overflow-auto max-h-64 font-mono">
+        <pre
+          className="mt-1 p-3 text-[10px] leading-tight rounded-md overflow-auto max-h-64"
+          style={{
+            backgroundColor: '#1e1e1e',
+            color: '#10b981',
+            border: '1px solid var(--border-default)',
+            fontFamily: "'JetBrains Mono', monospace",
+          }}
+        >
           {JSON.stringify(debugData, null, 2)}
         </pre>
       )}
@@ -276,19 +386,40 @@ function DebugJson({ entity }) {
 
 function AttributeRow({ attr, entityId, updateAttribute, deleteAttribute }) {
   return (
-    <div className="border border-gray-200 rounded p-2 bg-gray-50">
+    <div
+      className="rounded-md p-2.5"
+      style={{
+        backgroundColor: 'var(--bg-overlay)',
+        border: '1px solid var(--border-default)',
+      }}
+    >
       <div className="flex items-center gap-1.5 mb-1.5">
         <input
           type="text"
-          className="flex-1 border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+          style={{
+            ...inputStyle,
+            flex: 1,
+            padding: '4px 8px',
+            fontSize: '12px',
+            fontFamily: "'JetBrains Mono', monospace",
+          }}
           value={attr.name}
           placeholder="name"
           onChange={(e) =>
             updateAttribute(entityId, attr.id, { name: e.target.value })
           }
+          onFocus={(e) => { e.target.style.borderColor = 'var(--accent-brand)'; }}
+          onBlur={(e) => { e.target.style.borderColor = 'var(--border-default)'; }}
         />
         <select
-          className="border border-gray-300 rounded px-1 py-0.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+          style={{
+            ...inputStyle,
+            width: 'auto',
+            padding: '4px 6px',
+            fontSize: '11px',
+            fontFamily: "'JetBrains Mono', monospace",
+            cursor: 'pointer',
+          }}
           value={attr.dataType}
           onChange={(e) =>
             updateAttribute(entityId, attr.id, { dataType: e.target.value })
@@ -302,36 +433,42 @@ function AttributeRow({ attr, entityId, updateAttribute, deleteAttribute }) {
         </select>
         <button
           onClick={() => deleteAttribute(entityId, attr.id)}
-          className="text-red-400 hover:text-red-600 text-xs leading-none px-1"
+          className="text-xs leading-none px-1 transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
           title="Delete attribute"
         >
           &times;
         </button>
       </div>
       <div className="flex items-center gap-3">
-        <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
-          <input
-            type="checkbox"
-            className="rounded"
-            checked={attr.isIdentifier}
-            onChange={(e) =>
-              updateAttribute(entityId, attr.id, { isIdentifier: e.target.checked })
-            }
-          />
-          Identifier
-        </label>
-        <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
-          <input
-            type="checkbox"
-            className="rounded"
-            checked={attr.isRequired}
-            onChange={(e) =>
-              updateAttribute(entityId, attr.id, { isRequired: e.target.checked })
-            }
-          />
-          Required
-        </label>
+        <CheckboxLabel
+          label="Identifier"
+          checked={attr.isIdentifier}
+          onChange={(v) => updateAttribute(entityId, attr.id, { isIdentifier: v })}
+        />
+        <CheckboxLabel
+          label="Required"
+          checked={attr.isRequired}
+          onChange={(v) => updateAttribute(entityId, attr.id, { isRequired: v })}
+        />
       </div>
     </div>
+  );
+}
+
+function CheckboxLabel({ label, checked, onChange }) {
+  return (
+    <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+      <input
+        type="checkbox"
+        className="rounded"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        style={{ accentColor: 'var(--accent-brand)' }}
+      />
+      {label}
+    </label>
   );
 }

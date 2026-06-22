@@ -23,7 +23,6 @@ export default function Canvas() {
 
   const handleMouseDown = useCallback(
     (e) => {
-      // Only pan on background click (directly on svg or the background rect)
       if (e.target === svgRef.current || e.target.dataset.background === "true") {
         isPanning.current = true;
         panStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
@@ -48,7 +47,8 @@ export default function Canvas() {
   return (
     <svg
       ref={svgRef}
-      className="flex-1 bg-gray-50 cursor-grab active:cursor-grabbing"
+      className="flex-1 cursor-grab active:cursor-grabbing"
+      style={{ backgroundColor: 'var(--bg-root)' }}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -56,8 +56,8 @@ export default function Canvas() {
       onMouseLeave={handleMouseUp}
     >
       <defs>
-        <pattern id="dotPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" fill="#d1d5db" />
+        <pattern id="dotPattern" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="0.5" fill="#d4d4d4" />
         </pattern>
         <marker
           id="arrowhead"
@@ -67,12 +67,11 @@ export default function Canvas() {
           refY="3.5"
           orient="auto"
         >
-          <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280" />
+          <polygon points="0 0, 10 3.5, 0 7" fill="#a3a3a3" />
         </marker>
       </defs>
 
       <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-        {/* Background with dot pattern */}
         <rect
           data-background="true"
           x="-5000"
@@ -82,17 +81,14 @@ export default function Canvas() {
           fill="url(#dotPattern)"
         />
 
-        {/* References rendered behind entities */}
         {references.map((ref) => (
           <TMReference key={ref.id} reference={ref} entities={entities} />
         ))}
 
-        {/* Notes */}
         {notes.map((note) => (
           <TMNote key={note.id} note={note} />
         ))}
 
-        {/* Entities */}
         {entities.map((entity) => (
           <TMEntity key={entity.id} entity={entity} />
         ))}
