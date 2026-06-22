@@ -1,4 +1,24 @@
 @import "tailwindcss";
+@import '@xyflow/react/dist/style.css';
+
+.react-flow__node {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  width: auto;
+  font-size: inherit;
+}
+
+.react-flow__edge-path {
+  stroke: #d4d4d4;
+  stroke-width: 1;
+}
+
+.react-flow__attribution {
+  display: none;
+}
 
 :root {
   --bg-root: #fafafa;

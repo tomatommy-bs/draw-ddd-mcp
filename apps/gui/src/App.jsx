@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ReactFlowProvider } from "@xyflow/react";
 import { DiagramProvider } from "./context/DiagramContext";
 import Toolbar from "./components/Toolbar";
 import Canvas from "./components/Canvas";
@@ -12,6 +13,7 @@ export default function App() {
 
   return (
     <DiagramProvider>
+      <ReactFlowProvider>
       <div className="flex flex-col w-full h-full">
         <Toolbar
           onToggleDebug={() => setShowDebug((v) => !v)}
@@ -26,6 +28,7 @@ export default function App() {
         </div>
         {showDebug && <DebugPanel onClose={() => setShowDebug(false)} />}
       </div>
+      </ReactFlowProvider>
     </DiagramProvider>
   );
 }
