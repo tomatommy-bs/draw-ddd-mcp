@@ -34,21 +34,28 @@ function computeViolations(entities, references) {
     const target = entityMap.get(ref.targetEntityId);
     if (!source || !target) continue;
 
-    // TM-G-001: E/C→R の場合、ソースに R の個体指定子 (reference identifier) が必要
+    // TM-G-001: E/C→R の場合、ソースに R の個体指定子が全て含まれていなければならない
     if ((source.type === 'event' || source.subtype === 'correspondence') && target.type === 'resource') {
-      const hasRefId = source.attributes.some(
+      const targetOwnIds = target.attributes.filter(
+        (a) => a.isIdentifier && (a.identifierType === 'own' || !a.identifierType),
+      );
+      const sourceRefIds = source.attributes.filter(
         (a) => a.isIdentifier && a.identifierType === 'reference' && a.referenceId === ref.id,
       );
-      if (!hasRefId) {
+      const missingIds = targetOwnIds.filter(
+        (ownAttr) => !sourceRefIds.some((refAttr) => refAttr.name === ownAttr.name),
+      );
+      if (missingIds.length > 0) {
+        const names = missingIds.map((a) => a.name).join(', ');
         addEntityViolation(
           source.id,
           'TM-G-001',
-          `${source.name} に ${target.name} の個体指定子が含まれていません`,
+          `${source.name} に ${target.name} の個体指定子が不足: ${names}`,
         );
         addRefViolation(
           ref.id,
           'TM-G-001',
-          `${source.name} → ${target.name}: 個体指定子の伝播が不足`,
+          `${source.name} → ${target.name}: 個体指定子 ${names} が未伝播`,
         );
       }
     }

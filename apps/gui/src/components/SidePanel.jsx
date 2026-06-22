@@ -51,6 +51,7 @@ export default function SidePanel() {
     deleteAttribute,
     updateNote,
     deleteNote,
+    violations,
   } = useDiagram();
 
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -127,6 +128,8 @@ export default function SidePanel() {
         badgeColor={isResource ? '#3b82f6' : '#f59e0b'}
         onClose={handleClose}
       />
+
+      <ViolationBanner entityId={entity.id} violations={violations} />
 
       <div className="p-4 flex flex-col gap-4 flex-1">
         <div>
@@ -271,6 +274,45 @@ export default function SidePanel() {
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ViolationBanner({ entityId, violations }) {
+  const items = violations?.entityViolations?.[entityId] || [];
+  if (items.length === 0) return null;
+
+  return (
+    <div
+      className="px-4 py-2.5"
+      style={{
+        backgroundColor: 'rgba(239,68,68,0.06)',
+        borderBottom: '1px solid rgba(239,68,68,0.15)',
+      }}
+    >
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+        <span className="text-xs font-semibold" style={{ color: '#ef4444' }}>
+          {items.length} 件の構文違反
+        </span>
+      </div>
+      <div className="flex flex-col gap-1">
+        {items.map((v, i) => (
+          <div key={i} className="text-xs leading-relaxed" style={{ color: '#b91c1c' }}>
+            <span
+              className="font-mono px-1 py-0.5 rounded mr-1"
+              style={{ backgroundColor: 'rgba(239,68,68,0.1)', fontSize: '10px' }}
+            >
+              {v.code}
+            </span>
+            {v.message}
+          </div>
+        ))}
       </div>
     </div>
   );
