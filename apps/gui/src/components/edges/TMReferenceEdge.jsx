@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { BaseEdge, getSmoothStepPath } from "@xyflow/react";
+import { BaseEdge, getBezierPath } from "@xyflow/react";
 
 const LINE_COLOR = "#d4d4d4";
 const SYMBOL_COLOR = "#a3a3a3";
@@ -12,7 +12,7 @@ const positionToVector = {
   right: { ux: 1, uy: 0 },
 };
 
-function CardinalitySymbol({ x, y, ux, uy, cardinality }) {
+function CardinalitySymbol({ x, y, ux, uy, cardinality, color = SYMBOL_COLOR }) {
   const px = -uy;
   const py = ux;
 
@@ -23,7 +23,7 @@ function CardinalitySymbol({ x, y, ux, uy, cardinality }) {
         y1={y + py * SYMBOL_SIZE}
         x2={x - px * SYMBOL_SIZE}
         y2={y - py * SYMBOL_SIZE}
-        stroke={SYMBOL_COLOR}
+        stroke={color}
         strokeWidth={1.5}
       />
     );
@@ -34,9 +34,9 @@ function CardinalitySymbol({ x, y, ux, uy, cardinality }) {
     const tipY = y + uy * SYMBOL_SIZE * 1.2;
     return (
       <g>
-        <line x1={tipX} y1={tipY} x2={x + px * SYMBOL_SIZE} y2={y + py * SYMBOL_SIZE} stroke={SYMBOL_COLOR} strokeWidth={1.5} />
-        <line x1={tipX} y1={tipY} x2={x} y2={y} stroke={SYMBOL_COLOR} strokeWidth={1.5} />
-        <line x1={tipX} y1={tipY} x2={x - px * SYMBOL_SIZE} y2={y - py * SYMBOL_SIZE} stroke={SYMBOL_COLOR} strokeWidth={1.5} />
+        <line x1={tipX} y1={tipY} x2={x + px * SYMBOL_SIZE} y2={y + py * SYMBOL_SIZE} stroke={color} strokeWidth={1.5} />
+        <line x1={tipX} y1={tipY} x2={x} y2={y} stroke={color} strokeWidth={1.5} />
+        <line x1={tipX} y1={tipY} x2={x - px * SYMBOL_SIZE} y2={y - py * SYMBOL_SIZE} stroke={color} strokeWidth={1.5} />
       </g>
     );
   }
@@ -45,14 +45,16 @@ function CardinalitySymbol({ x, y, ux, uy, cardinality }) {
 }
 
 function TMReferenceEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }) {
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
+  const edgeViolations = data?.violations || [];
+  const hasViolation = edgeViolations.length > 0;
+
+  const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
     sourcePosition,
     targetPosition,
-    borderRadius: 8,
   });
 
   const parts = (data?.cardinality || "1:N").split(":");
@@ -69,10 +71,18 @@ function TMReferenceEdge({ id, sourceX, sourceY, targetX, targetY, sourcePositio
 
   return (
     <>
-      <BaseEdge id={id} path={edgePath} style={{ stroke: LINE_COLOR, strokeWidth: 1 }} />
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        style={{
+          stroke: hasViolation ? '#ef4444' : LINE_COLOR,
+          strokeWidth: hasViolation ? 2 : 1,
+          strokeDasharray: hasViolation ? '6 3' : 'none',
+        }}
+      />
 
-      <CardinalitySymbol x={srcSymX} y={srcSymY} ux={srcVec.ux} uy={srcVec.uy} cardinality={sourceCard} />
-      <CardinalitySymbol x={tgtSymX} y={tgtSymY} ux={tgtVec.ux} uy={tgtVec.uy} cardinality={targetCard} />
+      <CardinalitySymbol x={srcSymX} y={srcSymY} ux={srcVec.ux} uy={srcVec.uy} cardinality={sourceCard} color={hasViolation ? '#ef4444' : SYMBOL_COLOR} />
+      <CardinalitySymbol x={tgtSymX} y={tgtSymY} ux={tgtVec.ux} uy={tgtVec.uy} cardinality={targetCard} color={hasViolation ? '#ef4444' : SYMBOL_COLOR} />
 
       {data?.label && (
         <>

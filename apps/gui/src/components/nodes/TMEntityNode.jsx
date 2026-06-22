@@ -19,6 +19,9 @@ function TMEntityNode({ data, selected }) {
   const bodyHeight = rowCount * ROW_HEIGHT;
   const totalHeight = HEADER_HEIGHT + bodyHeight;
 
+  const entityViolations = entity.violations || [];
+  const hasViolation = entityViolations.length > 0;
+
   const isResource = entity.type === "resource";
   const accentColor = isResource ? '#3b82f6' : '#f59e0b';
   const accentMuted = isResource
@@ -92,15 +95,17 @@ function TMEntityNode({ data, selected }) {
           width: ENTITY_WIDTH,
           height: totalHeight,
           overflow: "hidden",
-          border: `1px solid ${selected ? accentColor : '#e5e5e5'}`,
+          border: `1px solid ${hasViolation ? '#ef4444' : selected ? accentColor : '#e5e5e5'}`,
           borderRadius: '8px',
           userSelect: "none",
           fontSize: "12px",
           fontFamily: "'Inter', -apple-system, sans-serif",
           backgroundColor: '#ffffff',
-          boxShadow: selected
-            ? `0 0 0 3px ${isResource ? 'rgba(59,130,246,0.12)' : 'rgba(245,158,11,0.12)'}, 0 4px 12px rgba(0,0,0,0.08)`
-            : '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+          boxShadow: hasViolation
+            ? '0 0 0 3px rgba(239,68,68,0.12), 0 4px 12px rgba(239,68,68,0.08)'
+            : selected
+              ? `0 0 0 3px ${isResource ? 'rgba(59,130,246,0.12)' : 'rgba(245,158,11,0.12)'}, 0 4px 12px rgba(0,0,0,0.08)`
+              : '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
           transition: 'border-color 0.15s, box-shadow 0.15s',
         }}
       >
@@ -147,6 +152,28 @@ function TMEntityNode({ data, selected }) {
           >
             {isResource ? "R" : "E"}
           </span>
+          {hasViolation && (
+            <span
+              title={entityViolations.map((v) => v.message).join('\n')}
+              style={{
+                fontSize: '9px',
+                fontWeight: 700,
+                marginLeft: 4,
+                flexShrink: 0,
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                backgroundColor: '#ef4444',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1,
+              }}
+            >
+              {entityViolations.length}
+            </span>
+          )}
         </div>
 
         <div style={{ display: "flex", height: bodyHeight }}>

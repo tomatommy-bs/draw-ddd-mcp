@@ -4,9 +4,10 @@ import { useDiagram } from "../context/DiagramContext";
 import TMEntityNode, { ENTITY_WIDTH } from "./nodes/TMEntityNode";
 import TMNoteNode from "./nodes/TMNoteNode";
 import TMReferenceEdge from "./edges/TMReferenceEdge";
+import TMCorrespondenceEdge from "./edges/TMCorrespondenceEdge";
 
 const nodeTypes = { tmEntity: TMEntityNode, tmNote: TMNoteNode };
-const edgeTypes = { tmReference: TMReferenceEdge };
+const edgeTypes = { tmReference: TMReferenceEdge, tmCorrespondence: TMCorrespondenceEdge };
 
 const HEADER_HEIGHT = 36;
 const ROW_HEIGHT = 28;
@@ -45,13 +46,13 @@ function bestSide(srcPos, srcData, srcType, tgtPos, tgtData, tgtType) {
   };
 }
 
-function deriveNodes(entities, notes, selectedId) {
+function deriveNodes(entities, notes, selectedId, entityViolations) {
   return [
     ...entities.map((e) => ({
       id: e.id,
       type: "tmEntity",
       position: { x: e.x, y: e.y },
-      data: e,
+      data: { ...e, violations: entityViolations[e.id] || [] },
       selected: e.id === selectedId,
     })),
     ...notes.map((n) => ({
@@ -64,30 +65,90 @@ function deriveNodes(entities, notes, selectedId) {
   ];
 }
 
-function deriveEdges(references, nodeMap) {
-  return references.map((r) => {
-    const src = nodeMap.get(r.sourceEntityId);
-    const tgt = nodeMap.get(r.targetEntityId);
+function findCorrespondencePatterns(references, nodeMap) {
+  const corrEdges = [];
+  const consumedRefIds = new Set();
 
-    let sourceHandle = "bottom-src";
-    let targetHandle = "top";
+  const corrNodes = [...nodeMap.values()].filter(
+    (n) => n.type === "tmEntity" && n.data.subtype === "correspondence",
+  );
 
-    if (src && tgt) {
-      const sides = bestSide(src.position, src.data, src.type, tgt.position, tgt.data, tgt.type);
-      sourceHandle = sides.sourceHandle;
-      targetHandle = sides.targetHandle;
+  for (const corrNode of corrNodes) {
+    const outRefs = references.filter((r) => r.sourceEntityId === corrNode.id);
+    const resourceRefs = outRefs.filter((r) => {
+      const tgt = nodeMap.get(r.targetEntityId);
+      return tgt && tgt.data.type === "resource";
+    });
+
+    if (resourceRefs.length === 2) {
+      const [ref1, ref2] = resourceRefs;
+      const r1Node = nodeMap.get(ref1.targetEntityId);
+      const r2Node = nodeMap.get(ref2.targetEntityId);
+
+      if (r1Node && r2Node) {
+        const sides = bestSide(
+          r1Node.position, r1Node.data, r1Node.type,
+          r2Node.position, r2Node.data, r2Node.type,
+        );
+
+        const corrSize = getNodeSize(corrNode.data, corrNode.type);
+        const corrCenterX = corrNode.position.x + corrSize.w / 2;
+        const corrCenterY = corrNode.position.y + 0;
+
+        corrEdges.push({
+          id: `corr-${corrNode.id}`,
+          type: "tmCorrespondence",
+          source: ref1.targetEntityId,
+          target: ref2.targetEntityId,
+          sourceHandle: sides.sourceHandle,
+          targetHandle: sides.targetHandle,
+          data: {
+            corrNode: { x: corrCenterX, y: corrCenterY },
+            corrEntityId: corrNode.id,
+            ref1,
+            ref2,
+          },
+        });
+
+        consumedRefIds.add(ref1.id);
+        consumedRefIds.add(ref2.id);
+      }
     }
+  }
 
-    return {
-      id: r.id,
-      type: "tmReference",
-      source: r.sourceEntityId,
-      target: r.targetEntityId,
-      sourceHandle,
-      targetHandle,
-      data: r,
-    };
-  });
+  return { corrEdges, consumedRefIds };
+}
+
+function deriveEdges(references, nodeMap, referenceViolations) {
+  const { corrEdges, consumedRefIds } = findCorrespondencePatterns(references, nodeMap);
+
+  const normalEdges = references
+    .filter((r) => !consumedRefIds.has(r.id))
+    .map((r) => {
+      const src = nodeMap.get(r.sourceEntityId);
+      const tgt = nodeMap.get(r.targetEntityId);
+
+      let sourceHandle = "bottom-src";
+      let targetHandle = "top";
+
+      if (src && tgt) {
+        const sides = bestSide(src.position, src.data, src.type, tgt.position, tgt.data, tgt.type);
+        sourceHandle = sides.sourceHandle;
+        targetHandle = sides.targetHandle;
+      }
+
+      return {
+        id: r.id,
+        type: "tmReference",
+        source: r.sourceEntityId,
+        target: r.targetEntityId,
+        sourceHandle,
+        targetHandle,
+        data: { ...r, violations: referenceViolations[r.id] || [] },
+      };
+    });
+
+  return [...normalEdges, ...corrEdges];
 }
 
 function buildNodeMap(nodes) {
@@ -99,29 +160,29 @@ function buildNodeMap(nodes) {
 }
 
 export default function Canvas() {
-  const { entities, references, notes, selectedId, setSelectedId, updateEntity, updateNote } =
+  const { entities, references, notes, selectedId, setSelectedId, updateEntity, updateNote, violations } =
     useDiagram();
 
-  const [nodes, setNodes] = useState(() => deriveNodes(entities, notes, selectedId));
+  const [nodes, setNodes] = useState(() => deriveNodes(entities, notes, selectedId, violations.entityViolations));
   const nodesRef = useRef(nodes);
 
   useEffect(() => {
-    const next = deriveNodes(entities, notes, selectedId);
+    const next = deriveNodes(entities, notes, selectedId, violations.entityViolations);
     setNodes(next);
     nodesRef.current = next;
-  }, [entities, notes, selectedId]);
+  }, [entities, notes, selectedId, violations]);
 
-  const [edges, setEdges] = useState(() => deriveEdges(references, buildNodeMap(nodes)));
+  const [edges, setEdges] = useState(() => deriveEdges(references, buildNodeMap(nodes), violations.referenceViolations));
 
   useEffect(() => {
-    setEdges(deriveEdges(references, buildNodeMap(nodesRef.current)));
-  }, [references]);
+    setEdges(deriveEdges(references, buildNodeMap(nodesRef.current), violations.referenceViolations));
+  }, [references, violations]);
 
   const recalcEdges = useCallback(
     (currentNodes) => {
-      setEdges(deriveEdges(references, buildNodeMap(currentNodes)));
+      setEdges(deriveEdges(references, buildNodeMap(currentNodes), violations.referenceViolations));
     },
-    [references],
+    [references, violations],
   );
 
   const onNodesChange = useCallback(

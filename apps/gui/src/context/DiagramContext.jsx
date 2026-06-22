@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from "react";
 import { nanoid } from "nanoid";
 
 const DiagramContext = createContext(null);
@@ -12,6 +12,69 @@ export function useDiagram() {
 const DEFAULT_RESOURCE_COLOR = "#3b82f6";
 const DEFAULT_EVENT_COLOR = "#eab308";
 const DEFAULT_NOTE_COLOR = "#fbbf24";
+
+function computeViolations(entities, references) {
+  const entityViolations = {};
+  const referenceViolations = {};
+
+  const entityMap = new Map(entities.map((e) => [e.id, e]));
+
+  const addEntityViolation = (id, code, message) => {
+    if (!entityViolations[id]) entityViolations[id] = [];
+    entityViolations[id].push({ code, message, severity: 'error' });
+  };
+
+  const addRefViolation = (id, code, message) => {
+    if (!referenceViolations[id]) referenceViolations[id] = [];
+    referenceViolations[id].push({ code, message, severity: 'error' });
+  };
+
+  for (const ref of references) {
+    const source = entityMap.get(ref.sourceEntityId);
+    const target = entityMap.get(ref.targetEntityId);
+    if (!source || !target) continue;
+
+    // TM-G-001: E/C→R の場合、ソースに R の個体指定子 (reference identifier) が必要
+    if ((source.type === 'event' || source.subtype === 'correspondence') && target.type === 'resource') {
+      const hasRefId = source.attributes.some(
+        (a) => a.isIdentifier && a.identifierType === 'reference' && a.referenceId === ref.id,
+      );
+      if (!hasRefId) {
+        addEntityViolation(
+          source.id,
+          'TM-G-001',
+          `${source.name} に ${target.name} の個体指定子が含まれていません`,
+        );
+        addRefViolation(
+          ref.id,
+          'TM-G-001',
+          `${source.name} → ${target.name}: 個体指定子の伝播が不足`,
+        );
+      }
+    }
+
+    // TM-G-002: R→R の直接参照は禁止（対照表を経由すべき）
+    if (
+      source.type === 'resource' &&
+      source.subtype !== 'correspondence' &&
+      target.type === 'resource' &&
+      target.subtype !== 'correspondence'
+    ) {
+      addEntityViolation(
+        source.id,
+        'TM-G-002',
+        `${source.name} から ${target.name} への直接参照: 対照表(C)を経由してください`,
+      );
+      addRefViolation(
+        ref.id,
+        'TM-G-002',
+        `R→R 直接参照: ${source.name} → ${target.name}`,
+      );
+    }
+  }
+
+  return { entityViolations, referenceViolations };
+}
 
 function makeEntity(overrides = {}) {
   const id = overrides.id || nanoid();
@@ -206,6 +269,7 @@ export function DiagramProvider({ children }) {
     setReferences((prev) => [...prev, ref]);
 
     // Auto-generate reference identifier attributes on source entity
+    // + Auto-name correspondence entities as "A.B.対照表"
     const sourceId = ref.sourceEntityId;
     const targetId = ref.targetEntityId;
     if (sourceId && targetId) {
@@ -215,31 +279,52 @@ export function DiagramProvider({ children }) {
         const ownIds = target.attributes.filter(
           (a) => a.isIdentifier && (a.identifierType === "own" || !a.identifierType)
         );
-        if (ownIds.length === 0) return prev;
 
         return prev.map((e) => {
           if (e.id !== sourceId) return e;
           const source = e;
-          const existingIdCount = source.attributes.filter((a) => a.isIdentifier).length;
-          const isRecursive = source.subtype === "recursive" && sourceId === targetId;
-          const copies = isRecursive ? 2 : 1;
-          const newAttrs = [];
-          for (let c = 0; c < copies; c++) {
-            ownIds.forEach((ownAttr, i) => {
-              newAttrs.push(
-                makeAttribute({
-                  name: ownAttr.name,
-                  dataType: ownAttr.dataType,
-                  isIdentifier: true,
-                  identifierType: "reference",
-                  referenceId: ref.id,
-                  identifierOrder: existingIdCount + newAttrs.length + 1,
-                  isRequired: true,
-                })
-              );
-            });
+
+          // Add reference identifier attributes
+          let newAttrs = [];
+          if (ownIds.length > 0) {
+            const existingIdCount = source.attributes.filter((a) => a.isIdentifier).length;
+            const isRecursive = source.subtype === "recursive" && sourceId === targetId;
+            const copies = isRecursive ? 2 : 1;
+            for (let c = 0; c < copies; c++) {
+              ownIds.forEach((ownAttr) => {
+                newAttrs.push(
+                  makeAttribute({
+                    name: ownAttr.name,
+                    dataType: ownAttr.dataType,
+                    isIdentifier: true,
+                    identifierType: "reference",
+                    referenceId: ref.id,
+                    identifierOrder: existingIdCount + newAttrs.length + 1,
+                    isRequired: true,
+                  })
+                );
+              });
+            }
           }
-          return { ...source, attributes: [...source.attributes, ...newAttrs] };
+
+          let updated = newAttrs.length > 0
+            ? { ...source, attributes: [...source.attributes, ...newAttrs] }
+            : source;
+
+          // Auto-name correspondence
+          if (source.subtype === 'correspondence') {
+            const allRefs = [...referencesRef.current, ref];
+            const outRefs = allRefs.filter((r) => r.sourceEntityId === sourceId);
+            const targetNames = outRefs
+              .map((r) => prev.find((ent) => ent.id === r.targetEntityId))
+              .filter((ent) => ent && ent.type === 'resource')
+              .map((ent) => ent.name);
+            if (targetNames.length >= 2) {
+              updated = { ...updated, name: targetNames.join('.') + '.対照表' };
+            }
+          }
+
+          return updated;
         });
       });
     }
@@ -457,12 +542,18 @@ export function DiagramProvider({ children }) {
     return { valid: errors.length === 0, errors, warnings };
   }, []);
 
+  const violations = useMemo(
+    () => computeViolations(entities, references),
+    [entities, references],
+  );
+
   const value = {
     entities,
     references,
     notes,
     terms,
     selectedId,
+    violations,
     setSelectedId,
     addEntity,
     updateEntity,
