@@ -60,6 +60,32 @@ function computeViolations(entities, references) {
       }
     }
 
+    // TM-G-001b: E→E (N:1) の場合、後イベント(source/N側)に前イベント(target/1側)の固有指定子が全て含まれていなければならない
+    if (source.type === 'event' && target.type === 'event' && ref.cardinality === 'N:1') {
+      const targetOwnIds = target.attributes.filter(
+        (a) => a.isIdentifier && a.identifierType === 'own',
+      );
+      const sourceRefIds = source.attributes.filter(
+        (a) => a.isIdentifier && a.identifierType === 'reference' && a.referenceId === ref.id,
+      );
+      const missingIds = targetOwnIds.filter(
+        (ownAttr) => !sourceRefIds.some((refAttr) => refAttr.name === ownAttr.name),
+      );
+      if (missingIds.length > 0) {
+        const names = missingIds.map((a) => a.name).join(', ');
+        addEntityViolation(
+          source.id,
+          'TM-G-001',
+          `${source.name} に ${target.name} の固有指定子が不足: ${names}`,
+        );
+        addRefViolation(
+          ref.id,
+          'TM-G-001',
+          `${source.name} → ${target.name}: 固有指定子 ${names} が未伝播`,
+        );
+      }
+    }
+
     // TM-G-002: R→R の直接参照は禁止（対照表を経由すべき）
     if (
       source.type === 'resource' &&
@@ -160,6 +186,8 @@ export function DiagramProvider({ children }) {
   const [notes, setNotes] = useState([]);
   const [terms, setTerms] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [usecases, setUsecases] = useState([]);
+  const [highlight, setHighlight] = useState(null);
 
   // Use refs so WS callbacks always see latest state
   const entitiesRef = useRef(entities);
@@ -170,6 +198,8 @@ export function DiagramProvider({ children }) {
   notesRef.current = notes;
   const termsRef = useRef(terms);
   termsRef.current = terms;
+  const usecasesRef = useRef(usecases);
+  usecasesRef.current = usecases;
 
   // --- Entity CRUD ---
   const addEntity = useCallback((params = {}) => {
@@ -440,6 +470,7 @@ export function DiagramProvider({ children }) {
       references: referencesRef.current,
       notes: notesRef.current,
       terms: termsRef.current,
+      usecases: usecasesRef.current,
     };
   }, []);
 
@@ -465,11 +496,14 @@ export function DiagramProvider({ children }) {
       setEntities(migratedEntities);
       setReferences(diagram.references || []);
       setNotes(diagram.notes || []);
+      setUsecases(diagram.usecases || []);
       setSelectedId(null);
+      setHighlight(null);
     } else {
       setEntities((prev) => [...prev, ...migratedEntities]);
       setReferences((prev) => [...prev, ...(diagram.references || [])]);
       setNotes((prev) => [...prev, ...(diagram.notes || [])]);
+      setUsecases((prev) => [...prev, ...(diagram.usecases || [])]);
     }
   }, [migrateAttributes]);
 
@@ -483,8 +517,9 @@ export function DiagramProvider({ children }) {
       const resources = sorted.filter((e) => e.type === "resource");
       const events = sorted.filter((e) => e.type === "event");
 
+      const GAP = 280 * 1.5;
       const layoutRow = (list, startY) =>
-        list.map((e, i) => ({ ...e, x: 50 + i * 280, y: startY }));
+        list.map((e, i) => ({ ...e, x: 50 + i * GAP, y: startY }));
 
       return [...layoutRow(resources, 50), ...layoutRow(events, 400)];
     });
@@ -549,6 +584,39 @@ export function DiagramProvider({ children }) {
     return { valid: errors.length === 0, errors, warnings };
   }, []);
 
+  const addUsecase = useCallback((data) => {
+    const uc = { id: data.id || nanoid(), name: data.usecaseName, description: data.description || '', targets: data.targets || [] };
+    setUsecases((prev) => {
+      const idx = prev.findIndex((u) => u.name === uc.name);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...uc, id: next[idx].id };
+        return next;
+      }
+      return [...prev, uc];
+    });
+    return uc;
+  }, []);
+
+  const deleteUsecase = useCallback((id) => {
+    setUsecases((prev) => prev.filter((u) => u.id !== id));
+    setHighlight((prev) => (prev?._usecaseId === id ? null : prev));
+  }, []);
+
+  const activateUsecase = useCallback((id) => {
+    const uc = usecasesRef.current.find((u) => u.id === id);
+    if (uc) setHighlight({ usecaseName: uc.name, targets: uc.targets, _usecaseId: uc.id });
+  }, []);
+
+  const setUsecaseHighlight = useCallback((data) => {
+    const uc = addUsecase(data);
+    setHighlight({ usecaseName: data.usecaseName, targets: data.targets, _usecaseId: uc.id });
+  }, [addUsecase]);
+
+  const clearUsecaseHighlight = useCallback(() => {
+    setHighlight(null);
+  }, []);
+
   const violations = useMemo(
     () => computeViolations(entities, references),
     [entities, references],
@@ -561,6 +629,13 @@ export function DiagramProvider({ children }) {
     terms,
     selectedId,
     violations,
+    usecases,
+    highlight,
+    addUsecase,
+    deleteUsecase,
+    activateUsecase,
+    setUsecaseHighlight,
+    clearUsecaseHighlight,
     setSelectedId,
     addEntity,
     updateEntity,

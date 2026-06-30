@@ -135,6 +135,25 @@ export function useRemoteControl(enabled = false) {
           case "listTerms":
             data = { terms: c.getDiagram().terms || [] };
             break;
+          case "setHighlight":
+            c.setUsecaseHighlight(params);
+            data = { highlighted: true };
+            break;
+          case "clearHighlight":
+            c.clearUsecaseHighlight();
+            data = { cleared: true };
+            break;
+          case "activateUsecase":
+            c.activateUsecase(params.id);
+            data = { activated: params.id };
+            break;
+          case "deleteUsecase":
+            c.deleteUsecase(params.id);
+            data = { deleted: params.id };
+            break;
+          case "listUsecases":
+            data = { usecases: c.usecases || [] };
+            break;
           case "promptUser":
             setPendingPrompt({ id, ...params });
             return;

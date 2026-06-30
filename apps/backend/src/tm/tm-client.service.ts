@@ -294,6 +294,30 @@ export class TMClientService {
     return this.sendCommand('listTerms', {});
   }
 
+  async setHighlight(highlight: {
+    usecaseName: string;
+    description?: string;
+    targets: Array<{ entityId: string; attributeIds?: string[] }>;
+  }) {
+    return this.sendCommand('setHighlight', highlight);
+  }
+
+  async clearHighlight() {
+    return this.sendCommand('clearHighlight', {});
+  }
+
+  async activateUsecase(id: string) {
+    return this.sendCommand('activateUsecase', { id });
+  }
+
+  async deleteUsecase(id: string) {
+    return this.sendCommand('deleteUsecase', { id });
+  }
+
+  async listUsecases() {
+    return this.sendCommand('listUsecases', {});
+  }
+
   /**
    * Prompt the user in the browser GUI and wait for their response.
    * Uses a 5-minute timeout since this requires human interaction.

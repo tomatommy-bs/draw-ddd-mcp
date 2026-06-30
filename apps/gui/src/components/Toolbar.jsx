@@ -3,7 +3,7 @@ import { useDiagram } from "../context/DiagramContext";
 import useRemoteControl from "../hooks/useRemoteControl";
 import PromptModal from "./PromptModal";
 
-export default function Toolbar({ onToggleDebug, showDebug, onToggleGlossary, showGlossary }) {
+export default function Toolbar({ onToggleDebug, showDebug, onToggleGlossary, showGlossary, onToggleUsecases, showUsecases }) {
   const { addEntity, addNote, autoLayout } = useDiagram();
   const enabled =
     import.meta.env.VITE_REMOTE_CONTROL_ENABLED === "true" ||
@@ -45,7 +45,7 @@ export default function Toolbar({ onToggleDebug, showDebug, onToggleGlossary, sh
             </svg>
           </div>
           <span className="text-sm font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            draw-ddd
+            draw-datamodel
           </span>
         </div>
 
@@ -96,6 +96,13 @@ export default function Toolbar({ onToggleDebug, showDebug, onToggleGlossary, sh
       </div>
 
       <div className="flex items-center gap-2">
+        <ToolbarToggle
+          active={showUsecases}
+          onClick={onToggleUsecases}
+          title="Use Cases"
+        >
+          <UsecaseIcon size={14} />
+        </ToolbarToggle>
         <ToolbarToggle
           active={showGlossary}
           onClick={onToggleGlossary}
@@ -205,6 +212,15 @@ function GridIcon({ size = 12 }) {
       <rect x="14" y="3" width="7" height="7" />
       <rect x="3" y="14" width="7" height="7" />
       <rect x="14" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+
+function UsecaseIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 12l3 3 5-6" />
     </svg>
   );
 }

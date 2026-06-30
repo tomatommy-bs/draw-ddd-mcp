@@ -27,6 +27,7 @@ import { AddTermTool } from './tools/add-term.tool.js';
 import { UpdateTermTool } from './tools/update-term.tool.js';
 import { DeleteTermTool } from './tools/delete-term.tool.js';
 import { ListTermsTool } from './tools/list-terms.tool.js';
+import { HighlightUsecaseTool } from './tools/highlight-usecase.tool.js';
 
 const MCP_PRIMITIVES = [
   AddResourceTool,
@@ -55,6 +56,7 @@ const MCP_PRIMITIVES = [
   UpdateTermTool,
   DeleteTermTool,
   ListTermsTool,
+  HighlightUsecaseTool,
 ];
 
 /**
@@ -98,3 +100,4 @@ export * from './tools/add-term.tool.js';
 export * from './tools/update-term.tool.js';
 export * from './tools/delete-term.tool.js';
 export * from './tools/list-terms.tool.js';
+export * from './tools/highlight-usecase.tool.js';

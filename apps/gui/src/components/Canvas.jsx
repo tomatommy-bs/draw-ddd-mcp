@@ -46,15 +46,29 @@ function bestSide(srcPos, srcData, srcType, tgtPos, tgtData, tgtType) {
   };
 }
 
-function deriveNodes(entities, notes, selectedId, entityViolations) {
+function deriveNodes(entities, notes, selectedId, entityViolations, highlight) {
+  const highlightMap = {};
+  if (highlight?.targets) {
+    for (const t of highlight.targets) {
+      highlightMap[t.entityId] = t.attributeIds || null;
+    }
+  }
   return [
-    ...entities.map((e) => ({
-      id: e.id,
-      type: "tmEntity",
-      position: { x: e.x, y: e.y },
-      data: { ...e, violations: entityViolations[e.id] || [] },
-      selected: e.id === selectedId,
-    })),
+    ...entities.map((e) => {
+      const hl = highlightMap[e.id];
+      return {
+        id: e.id,
+        type: "tmEntity",
+        position: { x: e.x, y: e.y },
+        data: {
+          ...e,
+          violations: entityViolations[e.id] || [],
+          highlight: hl !== undefined ? (hl === null ? 'entity' : hl) : null,
+          highlightUsecase: highlight?.usecaseName || null,
+        },
+        selected: e.id === selectedId,
+      };
+    }),
     ...notes.map((n) => ({
       id: n.id,
       type: "tmNote",
@@ -160,17 +174,17 @@ function buildNodeMap(nodes) {
 }
 
 export default function Canvas() {
-  const { entities, references, notes, selectedId, setSelectedId, updateEntity, updateNote, violations } =
+  const { entities, references, notes, selectedId, setSelectedId, updateEntity, updateNote, violations, highlight } =
     useDiagram();
 
-  const [nodes, setNodes] = useState(() => deriveNodes(entities, notes, selectedId, violations.entityViolations));
+  const [nodes, setNodes] = useState(() => deriveNodes(entities, notes, selectedId, violations.entityViolations, highlight));
   const nodesRef = useRef(nodes);
 
   useEffect(() => {
-    const next = deriveNodes(entities, notes, selectedId, violations.entityViolations);
+    const next = deriveNodes(entities, notes, selectedId, violations.entityViolations, highlight);
     setNodes(next);
     nodesRef.current = next;
-  }, [entities, notes, selectedId, violations]);
+  }, [entities, notes, selectedId, violations, highlight]);
 
   const [edges, setEdges] = useState(() => deriveEdges(references, buildNodeMap(nodes), violations.referenceViolations));
 
